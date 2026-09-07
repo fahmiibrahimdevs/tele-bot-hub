@@ -26,6 +26,13 @@
             document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"><\/script>');
         }
     </script>
+    <!-- SweetAlert2 (Local + CDN Fallback) -->
+    <script src="/static/js/sweetalert2.all.min.js"></script>
+    <script>
+        if (typeof Swal === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>');
+        }
+    </script>
     <!-- Google Fonts: Inter & JetBrains Mono ala fahmiibrahim.my.id -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,6 +73,73 @@
         }
         .font-mono {
             font-family: 'JetBrains Mono', monospace;
+        }
+        /* SweetAlert2 Dark Theme Customization */
+        div.swal2-popup.tele-swal {
+            background: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 1.25rem !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75) !important;
+            font-family: 'Inter', system-ui, sans-serif !important;
+            color: #f1f5f9 !important;
+            padding: 1.75rem !important;
+        }
+        .swal2-title {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            font-size: 1.25rem !important;
+        }
+        .swal2-html-container {
+            color: #94a3b8 !important;
+            font-size: 0.875rem !important;
+        }
+        .tele-swal-confirm-btn {
+            padding: 0.65rem 1.5rem !important;
+            border-radius: 0.75rem !important;
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            background: linear-gradient(to right, #06b6d4, #2563eb) !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3) !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+        }
+        .tele-swal-confirm-btn:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-1px) !important;
+        }
+        .tele-swal-danger-btn {
+            padding: 0.65rem 1.5rem !important;
+            border-radius: 0.75rem !important;
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            background: linear-gradient(to right, #e11d48, #be123c) !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(225, 29, 72, 0.3) !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+        }
+        .tele-swal-danger-btn:hover {
+            opacity: 0.9 !important;
+            transform: translateY(-1px) !important;
+        }
+        .tele-swal-cancel-btn {
+            padding: 0.65rem 1.25rem !important;
+            border-radius: 0.75rem !important;
+            font-weight: 600 !important;
+            font-size: 0.875rem !important;
+            background: #1e293b !important;
+            color: #cbd5e1 !important;
+            border: 1px solid #334155 !important;
+            margin-right: 0.5rem !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+        }
+        .tele-swal-cancel-btn:hover {
+            background: #334155 !important;
+            color: white !important;
         }
     </style>
 </head>
@@ -146,6 +220,77 @@
 
     <script>
         lucide.createIcons();
+
+        // --- SWEETALERT2 GLOBAL HELPERS ---
+        window.showConfirm = function({ title, text, icon = 'question', confirmText = 'Ya, Lanjutkan', cancelText = 'Batal', isDanger = false }) {
+            return Swal.fire({
+                customClass: {
+                    popup: 'tele-swal',
+                    confirmButton: isDanger ? 'tele-swal-danger-btn' : 'tele-swal-confirm-btn',
+                    cancelButton: 'tele-swal-cancel-btn'
+                },
+                buttonsStyling: false,
+                title: title,
+                text: text,
+                icon: icon,
+                showCancelButton: true,
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                reverseButtons: true,
+                backdrop: 'rgba(3, 7, 18, 0.75)'
+            });
+        };
+
+        window.showAlert = function({ title, text, icon = 'info', timer = null }) {
+            return Swal.fire({
+                customClass: {
+                    popup: 'tele-swal',
+                    confirmButton: 'tele-swal-confirm-btn'
+                },
+                buttonsStyling: false,
+                title: title,
+                text: text,
+                icon: icon,
+                confirmButtonText: 'Tutup',
+                timer: timer,
+                backdrop: 'rgba(3, 7, 18, 0.75)'
+            });
+        };
+
+        window.showToast = function({ title, icon = 'success' }) {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true,
+                background: '#0f172a',
+                color: '#f8fafc',
+                customClass: {
+                    popup: 'border border-gray-800 rounded-xl shadow-xl text-sm'
+                }
+            });
+            return Toast.fire({ icon: icon, title: title });
+        };
+
+        // Form confirmation interceptor
+        window.confirmForm = function(event, message, isDanger = true) {
+            event.preventDefault();
+            const form = event.target.closest('form');
+            showConfirm({
+                title: 'Konfirmasi Tindakan',
+                text: message,
+                icon: isDanger ? 'warning' : 'question',
+                confirmText: 'Ya, Lanjutkan',
+                cancelText: 'Batal',
+                isDanger: isDanger
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+            return false;
+        };
     </script>
     {% block scripts %}{% endblock %}
 </body>

@@ -353,7 +353,7 @@
                 </form>
 
                 <!-- Tombol Hapus Record -->
-                <form action="/api/users/{{ u.id }}/delete" method="POST" onsubmit="return confirm('Hapus pengguna ini dari database?')" class="shrink-0">
+                <form action="/api/users/{{ u.id }}/delete" method="POST" onsubmit="return confirmForm(event, 'Apakah Anda yakin ingin menghapus data pengguna ini dari database?', true)" class="shrink-0">
                     <button type="submit" title="Hapus pengguna dari database" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
@@ -558,9 +558,17 @@
         }
     }
 
-    function submitRemoveVip() {
+    async function submitRemoveVip() {
         if (!currentModalUserId) return;
-        if (confirm('Cabut status VIP pengguna ini dan kembalikan ke kuota standar?')) {
+        const res = await showConfirm({
+            title: 'Cabut Status VIP?',
+            text: 'Pengguna ini akan dikembalikan ke kuota standar harian.',
+            icon: 'warning',
+            confirmText: 'Ya, Cabut VIP',
+            cancelText: 'Batal',
+            isDanger: true
+        });
+        if (res.isConfirmed) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/api/users/' + currentModalUserId + '/set-vip';

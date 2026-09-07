@@ -396,8 +396,8 @@
                     </a>
 
                     <!-- Delete Button Form -->
-                    <form action="/api/bots/{{ b.id }}/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus bot ini?')">
-                        <button type="submit" class="p-2 rounded-xl text-xs font-semibold bg-red-950/30 hover:bg-red-900/50 border border-red-800/50 text-red-400 hover:text-red-200 transition">
+                    <form action="/api/bots/{{ b.id }}/delete" method="POST" onsubmit="return confirmForm(event, 'Apakah Anda yakin ingin menghapus bot ini? Bot akan dimatikan dan dihapus permanen dari sistem.', true)">
+                        <button type="submit" title="Hapus bot dari sistem" class="p-2 rounded-xl text-xs font-semibold bg-red-950/30 hover:bg-red-900/50 border border-red-800/50 text-red-400 hover:text-red-200 transition">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </form>
@@ -564,27 +564,48 @@
 
     // Purge Cache Storage
     async function purgeStorage() {
-        if (!confirm("Bersihkan semua file cache dan unduhan sementara di folder storage?")) return;
+        const result = await showConfirm({
+            title: 'Bersihkan Cache Storage?',
+            text: 'Semua file temporary dan unduhan sementara di folder storage akan dihapus.',
+            icon: 'warning',
+            confirmText: 'Bersihkan Sekarang',
+            cancelText: 'Batal',
+            isDanger: true
+        });
+        if (!result.isConfirmed) return;
+
         const btn = document.getElementById('btn-purge-storage');
         btn.disabled = true;
-        btn.innerHTML = `<span>Membersihkan...</span>`;
+        btn.innerHTML = `<span class="animate-pulse">Membersihkan...</span>`;
 
         try {
             const res = await fetch('/api/storage/purge', { method: 'POST' });
             const data = await res.json();
             if (data.ok) {
                 const mb = (data.purged_bytes / (1024 * 1024)).toFixed(2);
-                alert(`✅ Berhasil membersihkan ${mb} MB (${data.purged_items} item)!`);
+                showAlert({
+                    title: 'Pembersihan Berhasil!',
+                    text: `Berhasil membersihkan ${mb} MB (${data.purged_items} file) dari storage.`,
+                    icon: 'success'
+                });
                 fetchStorage();
             } else {
-                alert(`❌ Gagal: ${data.message}`);
+                showAlert({
+                    title: 'Gagal Membersihkan',
+                    text: data.message || 'Terjadi kesalahan sistem.',
+                    icon: 'error'
+                });
             }
         } catch (e) {
-            alert("❌ Terjadi kesalahan saat membersihkan storage.");
+            showAlert({
+                title: 'Kesalahan Sistem',
+                text: 'Terjadi kesalahan saat menghubungi server.',
+                icon: 'error'
+            });
         } finally {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4 mr-2"></i><span>Bersihkan Cache Sekarang</span>`;
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }
 
@@ -790,17 +811,22 @@
     }
 
     async function updateYtdlp() {
-        if (!confirm("Apakah Anda yakin ingin memperbarui library YT-Dlp sekarang?")) {
-            return;
-        }
+        const result = await showConfirm({
+            title: 'Perbarui Library YT-Dlp?',
+            text: 'Sistem akan mengunduh dan memasang versi terbaru mesin yt-dlp dari PyPI.',
+            icon: 'question',
+            confirmText: 'Ya, Perbarui Sekarang',
+            cancelText: 'Batal'
+        });
+        if (!result.isConfirmed) return;
 
         const updateBtn = document.getElementById('btn-update-ytdlp');
         const updateBtnText = document.getElementById('btn-update-ytdlp-text');
         const origText = updateBtnText ? updateBtnText.textContent : "Perbarui YT-Dlp";
 
         if (updateBtn) {
-            updateBtn.disabled = true;
-            updateBtn.classList.add('opacity-75', 'cursor-not-allowed');
+             updateBtn.disabled = true;
+             updateBtn.classList.add('opacity-75', 'cursor-not-allowed');
         }
         if (updateBtnText) updateBtnText.textContent = "Sedang Memperbarui...";
 
@@ -808,13 +834,25 @@
             const res = await fetch('/api/system/ytdlp-update', { method: 'POST' });
             const data = await res.json();
             if (data.ok) {
-                alert("🎉 " + data.message);
+                showAlert({
+                    title: 'Pembaruan Berhasil!',
+                    text: data.message,
+                    icon: 'success'
+                });
                 await checkYtdlpStatus();
             } else {
-                alert("❌ Gagal memperbarui: " + (data.error || "Terjadi kesalahan"));
+                showAlert({
+                    title: 'Pembaruan Gagal',
+                    text: data.error || 'Terjadi kesalahan sistem.',
+                    icon: 'error'
+                });
             }
         } catch (err) {
-            alert("❌ Terjadi kesalahan jaringan saat update: " + err);
+            showAlert({
+                title: 'Kesalahan Jaringan',
+                text: 'Terjadi kesalahan jaringan saat proses update: ' + err,
+                icon: 'error'
+            });
         } finally {
             if (updateBtn) {
                 updateBtn.disabled = false;

@@ -28,7 +28,7 @@
 
     <!-- Broadcast Form Card -->
     <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
-        <form action="/api/broadcast" method="POST" class="space-y-6" onsubmit="return confirm('Apakah Anda yakin ingin mengirim broadcast ini ke seluruh pengguna terpilih?')">
+        <form action="/api/broadcast" method="POST" class="space-y-6" onsubmit="return confirmForm(event, 'Apakah Anda yakin ingin mengirim pesan broadcast ini ke seluruh pengguna terpilih sekarang?', false)">
             <!-- Target Bot Selector -->
             <div>
                 <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Target Penerima Broadcast</label>
