@@ -1,3 +1,6 @@
+<img width="1920" height="1080" alt="Thumbnail_TeleBotHub" src="https://github.com/user-attachments/assets/46248a6c-adc2-4cdb-8665-9e999e65c268" />
+
+
 # 🤖 Telegram Bot Hub Portal
 
 Platform manajemen multi-bot Telegram modular dengan Web Dashboard interaktif.
