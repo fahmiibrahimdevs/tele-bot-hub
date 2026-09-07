@@ -289,11 +289,21 @@ async def log_activity(
         await db.commit()
 
 
-async def get_recent_logs(limit: int = 50):
+async def get_recent_logs(limit: int = 50, offset: int = 0):
     async with get_db() as db:
-        cursor = await db.execute("SELECT * FROM activity_logs ORDER BY id DESC LIMIT ?", (limit,))
+        cursor = await db.execute(
+            "SELECT * FROM activity_logs ORDER BY id DESC LIMIT ? OFFSET ?",
+            (limit, offset)
+        )
         rows = await cursor.fetchall()
         return [dict(r) for r in rows]
+
+
+async def get_logs_count():
+    async with get_db() as db:
+        cursor = await db.execute("SELECT COUNT(*) as cnt FROM activity_logs")
+        row = await cursor.fetchone()
+        return row["cnt"] if row else 0
 
 
 # --- TELEGRAM USERS & QUOTA SYSTEM ---
