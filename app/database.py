@@ -1053,6 +1053,8 @@ def get_storage_stats():
     items = []
     if os.path.exists(STORAGE_DIR):
         for entry in os.scandir(STORAGE_DIR):
+            if entry.name.startswith("."):
+                continue
             if entry.is_file():
                 size = entry.stat().st_size
                 total_size += size
@@ -1087,6 +1089,8 @@ def purge_storage_temp_files():
     purged_items = 0
     if os.path.exists(STORAGE_DIR):
         for entry in os.scandir(STORAGE_DIR):
+            if entry.name.startswith("."):
+                continue
             try:
                 if entry.is_file():
                     purged_bytes += entry.stat().st_size
