@@ -29,12 +29,17 @@ from app.database import (
     update_admin_profile,
     get_storage_stats,
     purge_storage_temp_files,
-    get_analytics_chart_data,
     format_date_id,
-    parse_datetime_flexible
+    parse_datetime_flexible,
+    log_activity
 )
 from app.auth import create_session_token, get_current_user, require_auth, COOKIE_NAME
 from app.bot_manager import bot_manager
+import yt_dlp
+import subprocess
+import sys
+import importlib
+from packaging.version import parse as parse_version
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
@@ -120,6 +125,7 @@ async def dashboard_page(request: Request, user: dict = Depends(require_auth)):
 
     stats = await get_stats()
     stats["active_bots"] = sum(1 for b in bots if b["is_running"])
+    ytdlp_ver = getattr(yt_dlp.version, "__version__", "Unknown")
 
     return templates.TemplateResponse(
         request=request,
@@ -128,6 +134,7 @@ async def dashboard_page(request: Request, user: dict = Depends(require_auth)):
             "user": user,
             "bots": bots,
             "stats": stats,
+            "ytdlp_version": ytdlp_ver,
             "active_page": "dashboard"
         }
     )
@@ -595,3 +602,85 @@ async def api_analytics_charts(user: dict = Depends(require_auth)):
         "activity_counts": data["activity_counts"],
         "bot_types": data["bot_types"]
     })
+
+
+# --- YT-DLP CORE ENGINE & UPDATER API ---
+
+@app.get("/api/system/ytdlp-status")
+async def get_ytdlp_status(user: dict = Depends(require_auth)):
+    try:
+        current_version = getattr(yt_dlp.version, "__version__", "Unknown")
+        latest_version = current_version
+        needs_update = False
+
+        # Query PyPI
+        async with aiohttp.ClientSession() as session:
+            async with session.get("https://pypi.org/pypi/yt-dlp/json", timeout=aiohttp.ClientTimeout(total=4.0)) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    latest_version = data.get("info", {}).get("version", current_version)
+                    try:
+                        needs_update = parse_version(latest_version) > parse_version(current_version)
+                    except Exception:
+                        needs_update = (latest_version != current_version)
+
+        return JSONResponse(content={
+            "ok": True,
+            "current_version": current_version,
+            "latest_version": latest_version,
+            "needs_update": needs_update
+        })
+    except Exception as e:
+        return JSONResponse(content={
+            "ok": True,
+            "current_version": getattr(yt_dlp.version, "__version__", "Unknown"),
+            "latest_version": "N/A",
+            "needs_update": False,
+            "error": str(e)
+        })
+
+
+@app.post("/api/system/ytdlp-update")
+async def update_ytdlp_engine(user: dict = Depends(require_auth)):
+    old_version = getattr(yt_dlp.version, "__version__", "Unknown")
+    python_bin = sys.executable
+
+    def run_pip_upgrade():
+        return subprocess.run(
+            [python_bin, "-m", "pip", "install", "--upgrade", "yt-dlp"],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+
+    try:
+        proc = await asyncio.to_thread(run_pip_upgrade)
+        if proc.returncode != 0:
+            return JSONResponse(content={
+                "ok": False,
+                "error": f"Proses pip gagal: {proc.stderr[:250]}"
+            }, status_code=500)
+
+        # Reload module
+        importlib.reload(yt_dlp)
+        importlib.reload(yt_dlp.version)
+        new_version = getattr(yt_dlp.version, "__version__", "Unknown")
+
+        await log_activity(
+            bot_id=None,
+            bot_username="system",
+            action="update_ytdlp",
+            status="success",
+            details=f"Pembaruan yt-dlp: {old_version} -> {new_version}",
+            user_telegram_id=None,
+            user_name=f"Admin: {user['username']}"
+        )
+
+        return JSONResponse(content={
+            "ok": True,
+            "old_version": old_version,
+            "new_version": new_version,
+            "message": f"yt-dlp berhasil diperbarui dari v{old_version} ke v{new_version}!"
+        })
+    except Exception as e:
+        return JSONResponse(content={"ok": False, "error": str(e)}, status_code=500)

@@ -13,6 +13,10 @@ if [ ! -d ".venv" ]; then
     python3 -m venv .venv
     .venv/bin/pip install --upgrade pip
     .venv/bin/pip install -r requirements.txt
+else
+    # Auto-check & update yt-dlp to latest version upon startup
+    echo "🔍 Memeriksa pembaruan YT-Dlp core..."
+    .venv/bin/pip install --upgrade yt-dlp --quiet || true
 fi
 
 PORT="${PORT:-8000}"
