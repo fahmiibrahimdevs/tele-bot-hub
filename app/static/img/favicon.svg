@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="teleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+  </defs>
+  <!-- Background Squircle -->
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#teleGrad)" stroke="#38bdf8" stroke-width="1.2" stroke-opacity="0.5"/>
+  <!-- Bot Icon (Lucide Bot scaled and centered) -->
+  <g transform="translate(13.5, 13.5) scale(1.54)" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M12 8V4H8" />
+    <rect width="16" height="12" x="4" y="8" rx="2.5" fill="#ffffff" fill-opacity="0.18" />
+    <path d="M2 14h2" />
+    <path d="M20 14h2" />
+    <path d="M15 13v2" />
+    <path d="M9 13v2" />
+  </g>
+</svg>

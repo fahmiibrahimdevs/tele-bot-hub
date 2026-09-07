@@ -5,7 +5,7 @@ import time
 import aiohttp
 import psutil
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
@@ -75,6 +75,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Telegram Bot Hub Portal", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon_route():
+    favicon_path = os.path.join(STATIC_DIR, "img", "favicon.ico")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    return HTMLResponse(status_code=404)
 
 
 # --- AUTHENTICATION ROUTES ---
