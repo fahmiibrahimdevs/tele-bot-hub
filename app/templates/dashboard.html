@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard • Telegram Bot Hub{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Page -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+                <span>Control Center</span>
+                <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-400 font-semibold uppercase tracking-wider">WSL2</span>
+            </h1>
+            <p class="text-sm text-gray-400 mt-1">Kelola bot Telegram, monitor performa WSL, dan atur kuota pengguna.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openAddModal()" class="inline-flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-cyan-500/20 transition transform hover:-translate-y-0.5">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Tambah Bot Baru</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400">Total Bot</span>
+                <div class="w-8 h-8 rounded-lg bg-blue-950/60 border border-blue-800 flex items-center justify-center text-blue-400">
+                    <i data-lucide="bot" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl font-black text-white">{{ stats.total_bots }}</span>
+                <span class="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> {{ stats.active_bots }} aktif
+                </span>
+            </div>
+        </div>
+
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400">Pengguna Telegram</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-950/60 border border-purple-800 flex items-center justify-center text-purple-400">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl font-black text-white">{{ stats.total_users }}</span>
+                <a href="/users" class="text-xs text-purple-400 hover:underline">Kelola &rarr;</a>
+            </div>
+        </div>
+
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400">User Unlimited</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-950/60 border border-amber-800 flex items-center justify-center text-amber-400">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl font-black text-amber-400">{{ stats.total_unlimited }}</span>
+                <span class="text-[11px] text-gray-400">Bypass Kuota</span>
+            </div>
+        </div>
+
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400">Operasi Hari Ini</span>
+                <div class="w-8 h-8 rounded-lg bg-cyan-950/60 border border-cyan-800 flex items-center justify-center text-cyan-400">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl font-black text-cyan-400">{{ stats.today_ops }}</span>
+                <span class="text-[11px] text-gray-400">24 jam terakhir</span>
+            </div>
+        </div>
+
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-4 shadow-sm backdrop-blur-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400">Total Operasi Sukses</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-800 flex items-center justify-center text-emerald-400">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-2xl font-black text-white">{{ stats.total_success_ops }}</span>
+                <span class="text-[11px] text-emerald-400">All-time</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Middle Section: Server Health & Storage Cleaner -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Server Health Widget -->
+        <div class="lg:col-span-2 bg-[#111827]/70 border border-gray-800 rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between border-b border-gray-800/80 pb-4 mb-4">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-white text-base">Server & WSL Resource Monitor</h2>
+                        <p class="text-xs text-gray-400">Status penggunaan CPU, Memori RAM, dan Disk Host</p>
+                    </div>
+                </div>
+                <button onclick="fetchHealth()" id="btn-refresh-health" class="p-2 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-gray-300 transition text-xs flex items-center gap-1">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- CPU -->
+                <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-4">
+                    <div class="flex justify-between items-center text-xs mb-2">
+                        <span class="text-gray-400 font-medium">CPU Usage</span>
+                        <span id="cpu-text" class="font-bold text-cyan-400">--%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                        <div id="cpu-bar" class="bg-gradient-to-r from-cyan-500 to-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-2 text-[11px] text-gray-500 flex justify-between">
+                        <span>WSL vCPU</span>
+                        <span id="cpu-cores">-- Cores</span>
+                    </div>
+                </div>
+
+                <!-- RAM -->
+                <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-4">
+                    <div class="flex justify-between items-center text-xs mb-2">
+                        <span class="text-gray-400 font-medium">RAM Memory</span>
+                        <span id="ram-text" class="font-bold text-emerald-400">--%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                        <div id="ram-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-2 text-[11px] text-gray-500 flex justify-between">
+                        <span id="ram-used">-- GB</span>
+                        <span id="ram-total">of -- GB</span>
+                    </div>
+                </div>
+
+                <!-- DISK -->
+                <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-4">
+                    <div class="flex justify-between items-center text-xs mb-2">
+                        <span class="text-gray-400 font-medium">Disk Storage</span>
+                        <span id="disk-text" class="font-bold text-amber-400">--%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden">
+                        <div id="disk-bar" class="bg-gradient-to-r from-amber-500 to-orange-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-2 text-[11px] text-gray-500 flex justify-between">
+                        <span id="disk-used">-- GB</span>
+                        <span id="disk-total">of -- GB</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-gray-800/60 flex flex-wrap items-center justify-between text-xs text-gray-400 gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Host System: <strong id="sys-platform" class="text-gray-300">Linux WSL2</strong></span>
+                </div>
+                <div>Uptime: <strong id="sys-uptime" class="text-gray-300">--</strong></div>
+            </div>
+        </div>
+
+        <!-- Storage & Cache Cleaner Widget -->
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between border-b border-gray-800/80 pb-4 mb-4">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-red-950 border border-red-800 flex items-center justify-center text-red-400">
+                            <i data-lucide="hard-drive" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-white text-base">Cache & Temp Storage</h2>
+                            <p class="text-xs text-gray-400">File sementara proses render</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-4 text-center">
+                    <span class="text-xs text-gray-400">Ukuran Cache Saat Ini</span>
+                    <div id="storage-size-display" class="text-3xl font-black text-white mt-1">-- MB</div>
+                    <div id="storage-files-display" class="text-xs text-gray-500 mt-1">-- file dalam folder storage</div>
+                </div>
+
+                <div class="text-xs text-gray-400 mt-3 space-y-1">
+                    <p class="flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        <span>Folder <code>/storage</code> menyimpan file gambar, audio & video sementara saat diproses.</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-gray-800/60">
+                <button onclick="purgeStorage()" id="btn-purge-storage" class="w-full inline-flex items-center justify-center space-x-2 bg-red-950/60 hover:bg-red-900/60 border border-red-800/70 text-red-300 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Bersihkan Cache Sekarang</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual Analytics (Chart.js) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 7-Day Trend Chart -->
+        <div class="lg:col-span-2 bg-[#111827]/70 border border-gray-800 rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between border-b border-gray-800/80 pb-3 mb-4">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-400">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-white text-base">Tren Aktivitas Bot (7 Hari Terakhir)</h2>
+                        <p class="text-xs text-gray-400">Jumlah permintaan konversi & unduhan berhasil per hari</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative h-64 w-full">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Bot Share Doughnut -->
+        <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between border-b border-gray-800/80 pb-3 mb-4">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-950 border border-emerald-800 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="pie-chart" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-white text-base">Distribusi Kategori Bot</h2>
+                        <p class="text-xs text-gray-400">Porsi operasi antar modul bot</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative h-64 w-full flex items-center justify-center">
+                <canvas id="distChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bots Management List -->
+    <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+        <div class="px-6 py-5 border-b border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span>Daftar Bot Telegram Terpasang</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-300">{{ bots|length }} Bot</span>
+                </h2>
+                <p class="text-xs text-gray-400 mt-0.5">Pantau status polling bot dan kelola konfigurasinya.</p>
+            </div>
+        </div>
+
+        <div class="divide-y divide-gray-800/80">
+            {% for b in bots %}
+            <div class="p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:bg-gray-800/20 transition">
+                <div class="flex items-start space-x-4">
+                    <div class="w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center
+                        {% if b.bot_type == 'img2pdf' %}bg-rose-950/60 border border-rose-800/60 text-rose-400
+                        {% elif b.bot_type == 'mp3' %}bg-amber-950/60 border border-amber-800/60 text-amber-400
+                        {% else %}bg-blue-950/60 border border-blue-800/60 text-blue-400{% endif %}">
+                        {% if b.bot_type == 'img2pdf' %}
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                        {% elif b.bot_type == 'mp3' %}
+                        <i data-lucide="music" class="w-6 h-6"></i>
+                        {% else %}
+                        <i data-lucide="video" class="w-6 h-6"></i>
+                        {% endif %}
+                    </div>
+
+                    <div class="space-y-1">
+                        <div class="flex items-center space-x-3">
+                            <h3 class="font-bold text-white text-base">{{ b.name }}</h3>
+                            {% if b.is_running %}
+                            <span class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/80 border border-emerald-800 text-emerald-400 shadow-sm">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>AKTIF (NORMAL)</span>
+                            </span>
+                            {% elif b.is_maintenance %}
+                            <span class="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-950/80 border border-amber-700 text-amber-300 shadow-sm">
+                                <i data-lucide="wrench" class="w-3.5 h-3.5 text-amber-400"></i>
+                                <span>MAINTENANCE (STOPPED)</span>
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-900 border border-gray-700 text-gray-400">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                                <span>STOPPED</span>
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                            <span class="flex items-center gap-1 font-mono text-cyan-300">
+                                <i data-lucide="at-sign" class="w-3.5 h-3.5"></i>
+                                <a href="https://t.me/{{ b.username }}" target="_blank" class="hover:underline">@{{ b.username }}</a>
+                            </span>
+                            <span>•</span>
+                            <span class="uppercase tracking-wider font-semibold text-gray-300">
+                                {% if b.bot_type == 'img2pdf' %}Image to PDF
+                                {% elif b.bot_type == 'mp3' %}Audio MP3 Downloader
+                                {% else %}Video MP4 Downloader{% endif %}
+                            </span>
+                            <span>•</span>
+                            <span>Limit Harian: <strong class="text-white">{% if b.config_parsed.daily_limit %}{{ b.config_parsed.daily_limit }}x/hari{% else %}Unlimited{% endif %}</strong></span>
+                            {% if b.is_maintenance %}
+                            <span>•</span>
+                            <span class="text-amber-400 text-[11px] italic flex items-center gap-1">
+                                <i data-lucide="info" class="w-3 h-3"></i> Bot membalas bahwa sistem sedang pemeliharaan
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if b.config_parsed.custom_start_msg %}
+                        <p class="text-xs text-gray-400 line-clamp-1 italic max-w-xl">"{{ b.config_parsed.custom_start_msg }}"</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Bot Actions -->
+                <div class="flex items-center space-x-3 self-end lg:self-center">
+                    <!-- Toggle Switch Form -->
+                    <form action="/api/bots/{{ b.id }}/toggle" method="POST">
+                        {% if b.is_running %}
+                        <button type="submit" title="Hentikan bot sementara & alihkan ke pesan Maintenance" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-950/50 border border-amber-700/80 text-amber-300 hover:bg-amber-900/60 transition shadow-sm">
+                            <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+                            <span>Set Maintenance (Stop)</span>
+                        </button>
+                        {% else %}
+                        <button type="submit" title="Nyalakan bot kembali ke mode operasional penuh" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-950/50 border border-emerald-700/80 text-emerald-300 hover:bg-emerald-900/60 transition shadow-sm">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                            <span>Aktifkan Bot Normal</span>
+                        </button>
+                        {% endif %}
+                    </form>
+
+                    <!-- Edit Button -->
+                    <a href="/bots/{{ b.id }}/edit" class="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 transition">
+                        <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
+                        <span>Edit & Kuota</span>
+                    </a>
+
+                    <!-- Delete Button Form -->
+                    <form action="/api/bots/{{ b.id }}/delete" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus bot ini?')">
+                        <button type="submit" class="p-2 rounded-xl text-xs font-semibold bg-red-950/30 hover:bg-red-900/50 border border-red-800/50 text-red-400 hover:text-red-200 transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-400 text-sm">
+                Belum ada bot yang didaftarkan. Klik tombol <strong>Tambah Bot Baru</strong> untuk memulai.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Bot -->
+<div id="addModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden p-4">
+    <div class="bg-[#111827] border border-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <i data-lucide="plus-circle" class="w-5 h-5 text-cyan-400"></i>
+                <span>Tambah Bot Telegram Baru</span>
+            </h3>
+            <button onclick="closeAddModal()" class="text-gray-400 hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form action="/api/bots" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Bot Token (dari @BotFather)</label>
+                <div class="relative">
+                    <input type="text" name="token" id="bot-token-input" required placeholder="Contoh: 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition font-mono pr-20">
+                    <button type="button" onclick="verifyToken()" class="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-cyan-950 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-semibold hover:bg-cyan-900 transition">
+                        Cek
+                    </button>
+                </div>
+                <p id="token-status" class="text-xs mt-1 text-gray-500"></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Nama Bot</label>
+                    <input type="text" name="name" id="bot-name-input" required placeholder="My Awesome Bot" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Username Bot</label>
+                    <input type="text" name="username" id="bot-username-input" required placeholder="my_awesome_bot" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Tipe Bot / Modul</label>
+                <select name="bot_type" required class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+                    <option value="img2pdf">🖼️ Image to PDF (Ubah foto jadi dokumen PDF)</option>
+                    <option value="mp3">🎧 MP3 Downloader (Unduh audio dari YouTube/Media)</option>
+                    <option value="mp4">🎬 MP4 Video Downloader (Unduh video resolusi tinggi)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Pesan Sambutan (/start)</label>
+                <textarea name="custom_start_msg" rows="2" placeholder="Halo! Selamat datang di bot ini..." class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition"></textarea>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-3">
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-300 hover:bg-gray-800 transition">Batal</button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500 transition">Simpan & Jalankan</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openAddModal() {
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+    function closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+    }
+
+    // Check Telegram token via API
+    async function verifyToken() {
+        const token = document.getElementById('bot-token-input').value.trim();
+        const statusEl = document.getElementById('token-status');
+        if (!token) {
+            statusEl.innerText = "Masukkan token terlebih dahulu.";
+            statusEl.className = "text-xs mt-1 text-red-400";
+            return;
+        }
+
+        statusEl.innerText = "Mengecek ke API Telegram...";
+        statusEl.className = "text-xs mt-1 text-cyan-400";
+
+        try {
+            const res = await fetch(`/api/check-token?token=${encodeURIComponent(token)}`);
+            const data = await res.json();
+            if (data.ok && data.result) {
+                statusEl.innerText = `✅ Valid! Bot: @${data.result.username} (${data.result.first_name})`;
+                statusEl.className = "text-xs mt-1 text-emerald-400";
+                if (!document.getElementById('bot-name-input').value) {
+                    document.getElementById('bot-name-input').value = data.result.first_name;
+                }
+                if (!document.getElementById('bot-username-input').value) {
+                    document.getElementById('bot-username-input').value = data.result.username;
+                }
+            } else {
+                statusEl.innerText = `❌ Token tidak valid: ${data.description || 'Error'}`;
+                statusEl.className = "text-xs mt-1 text-red-400";
+            }
+        } catch (err) {
+            statusEl.innerText = "❌ Gagal menghubungi server atau API Telegram.";
+            statusEl.className = "text-xs mt-1 text-red-400";
+        }
+    }
+
+    // Health Monitor Fetcher
+    async function fetchHealth() {
+        try {
+            const res = await fetch('/api/system/health');
+            const data = await res.json();
+            if (data.ok) {
+                // CPU
+                document.getElementById('cpu-text').innerText = `${data.cpu.percent}%`;
+                document.getElementById('cpu-bar').style.width = `${Math.min(data.cpu.percent, 100)}%`;
+                document.getElementById('cpu-cores').innerText = `${data.cpu.count} Cores`;
+
+                // RAM
+                document.getElementById('ram-text').innerText = `${data.ram.percent}%`;
+                document.getElementById('ram-bar').style.width = `${Math.min(data.ram.percent, 100)}%`;
+                document.getElementById('ram-used').innerText = `${data.ram.used_gb} GB`;
+                document.getElementById('ram-total').innerText = `of ${data.ram.total_gb} GB`;
+
+                // DISK
+                document.getElementById('disk-text').innerText = `${data.disk.percent}%`;
+                document.getElementById('disk-bar').style.width = `${Math.min(data.disk.percent, 100)}%`;
+                document.getElementById('disk-used').innerText = `${data.disk.used_gb} GB`;
+                document.getElementById('disk-total').innerText = `of ${data.disk.total_gb} GB`;
+
+                // Platform & Uptime
+                document.getElementById('sys-platform').innerText = data.system.platform;
+                document.getElementById('sys-uptime').innerText = data.system.uptime;
+            }
+        } catch (e) {
+            console.error("Health fetch error:", e);
+        }
+    }
+
+    // Storage Stats Fetcher
+    async function fetchStorage() {
+        try {
+            const res = await fetch('/api/storage/stats');
+            const data = await res.json();
+            if (data.ok) {
+                const mb = (data.stats.total_size_bytes / (1024 * 1024)).toFixed(2);
+                document.getElementById('storage-size-display').innerText = `${mb} MB`;
+                document.getElementById('storage-files-display').innerText = `${data.stats.file_count} file / folder dalam storage`;
+            }
+        } catch (e) {
+            console.error("Storage fetch error:", e);
+        }
+    }
+
+    // Purge Cache Storage
+    async function purgeStorage() {
+        if (!confirm("Bersihkan semua file cache dan unduhan sementara di folder storage?")) return;
+        const btn = document.getElementById('btn-purge-storage');
+        btn.disabled = true;
+        btn.innerHTML = `<span>Membersihkan...</span>`;
+
+        try {
+            const res = await fetch('/api/storage/purge', { method: 'POST' });
+            const data = await res.json();
+            if (data.ok) {
+                const mb = (data.purged_bytes / (1024 * 1024)).toFixed(2);
+                alert(`✅ Berhasil membersihkan ${mb} MB (${data.purged_items} item)!`);
+                fetchStorage();
+            } else {
+                alert(`❌ Gagal: ${data.message}`);
+            }
+        } catch (e) {
+            alert("❌ Terjadi kesalahan saat membersihkan storage.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4 mr-2"></i><span>Bersihkan Cache Sekarang</span>`;
+            lucide.createIcons();
+        }
+    }
+
+    // Chart.js Setup
+    let trendChart = null;
+    let distChart = null;
+
+    async function loadCharts() {
+        try {
+            const res = await fetch('/api/analytics/charts');
+            const data = await res.json();
+            if (!data.ok) return;
+
+            // 1. Trend Chart
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Operasi Sukses',
+                        data: data.activity_counts,
+                        borderColor: '#06b6d4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.12)',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#22d3ee',
+                        pointBorderColor: '#0891b2',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { size: 11 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#9ca3af', font: { size: 11 }, precision: 0 }
+                        }
+                    }
+                }
+            });
+
+            // 2. Distribution Chart
+            const ctxDist = document.getElementById('distChart').getContext('2d');
+            if (distChart) distChart.destroy();
+            distChart = new Chart(ctxDist, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Image to PDF', 'MP3 Audio', 'MP4 Video'],
+                    datasets: [{
+                        data: [
+                            data.bot_types.img2pdf || 0,
+                            data.bot_types.mp3 || 0,
+                            data.bot_types.mp4 || 0
+                        ],
+                        backgroundColor: ['#f43f5e', '#f59e0b', '#3b82f6'],
+                        borderColor: '#111827',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#d1d5db', font: { size: 11 }, boxWidth: 12 }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+        } catch (e) {
+            console.error("Error loading charts:", e);
+        }
+    }
+
+    // Auto load on start
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchHealth();
+        fetchStorage();
+        loadCharts();
+        // Periodic update every 15s
+        setInterval(fetchHealth, 15000);
+    });
+</script>
+{% endblock %}

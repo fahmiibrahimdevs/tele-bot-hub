@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Bot • Telegram Bot Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="flex items-center space-x-3 mb-6">
+        <a href="/" class="p-2 rounded-xl bg-gray-800 border border-gray-700 text-gray-400 hover:text-white transition">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Konfigurasi Bot: {{ bot.name }}</h1>
+            <p class="text-sm text-gray-400">Ubah token, batas kuota harian, modul fungsionalitas, atau pesan awal bot</p>
+        </div>
+    </div>
+
+    <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-6 shadow-xl">
+        <form method="POST" action="/bots/{{ bot.id }}/edit" class="space-y-5">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Nama Tampilan Bot</label>
+                <input type="text" name="name" value="{{ bot.name }}" required
+                    class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Bot Token</label>
+                <input type="text" name="token" value="{{ bot.token }}" required
+                    class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none font-mono">
+                <p class="text-xs text-gray-500 mt-1">Username: @{{ bot.username }}</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Tipe Modul Bot</label>
+                    <select name="bot_type" required class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <option value="img2pdf" {% if bot.bot_type == 'img2pdf' %}selected{% endif %}>🖼️ Convert Image to PDF</option>
+                        <option value="mp3" {% if bot.bot_type == 'mp3' %}selected{% endif %}>🎵 Audio MP3 Downloader</option>
+                        <option value="mp4" {% if bot.bot_type == 'mp4' %}selected{% endif %}>🎬 Video MP4 Downloader</option>
+                    </select>
+                </div>
+
+                <!-- Daily Limit Setting -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Kuota Harian Default (Per User)</label>
+                    <input type="number" name="daily_limit" min="0" value="{{ bot.config_parsed.daily_limit or 0 }}" required
+                        class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    <p class="text-[11px] text-gray-500 mt-1">Isi <strong>0</strong> untuk tanpa batas kuota harian. User VIP 'Unlimited' akan selalu mengabaikan limit ini.</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Prefix Nama File Default</label>
+                <input type="text" name="default_prefix" value="{{ bot.config_parsed.default_prefix or 'Document' }}"
+                    class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                <p class="text-xs text-gray-500 mt-1">Contoh: "Document" atau "Media" (bila user tidak mengisi custom name)</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Pesan Sambutan Custom (/start)</label>
+                <textarea name="custom_start_msg" rows="3"
+                    class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">{{ bot.config_parsed.custom_start_msg or '' }}</textarea>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-amber-400 mb-2">Pesan Khusus Saat Maintenance / Stopped (Opsional)</label>
+                <textarea name="custom_maintenance_msg" rows="3" placeholder="Contoh: 🛠️ Layanan bot saat ini sedang dalam pemeliharaan berkala..."
+                    class="w-full px-3.5 py-2.5 bg-gray-950 border border-gray-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">{{ bot.config_parsed.custom_maintenance_msg or '' }}</textarea>
+                <p class="text-[11px] text-gray-500 mt-1">Pesan ini otomatis dikirim ke pengguna Telegram saat bot dinonaktifkan / dalam status maintenance.</p>
+            </div>
+
+            <!-- Custom Button Option -->
+            <div class="p-4 rounded-xl bg-gray-900/60 border border-gray-800 space-y-3">
+                <label class="block text-xs font-semibold uppercase tracking-wider text-cyan-400">Tombol Tautan Kustom di /start (Opsional)</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <input type="text" name="btn_text" placeholder="Teks Tombol (cth: 🌐 Web Portal)"
+                            value="{% if bot.config_parsed.custom_buttons and bot.config_parsed.custom_buttons|length > 0 %}{{ bot.config_parsed.custom_buttons[0].text }}{% endif %}"
+                            class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <input type="url" name="btn_url" placeholder="URL Tautan (cth: http://...)"
+                            value="{% if bot.config_parsed.custom_buttons and bot.config_parsed.custom_buttons|length > 0 %}{{ bot.config_parsed.custom_buttons[0].url }}{% endif %}"
+                            class="w-full px-3 py-2 bg-gray-950 border border-gray-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 flex justify-end space-x-3 border-t border-gray-800">
+                <a href="/" class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-semibold transition">
+                    Batal
+                </a>
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-semibold shadow-lg shadow-cyan-500/20 transition">
+                    Simpan Perubahan & Terapkan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

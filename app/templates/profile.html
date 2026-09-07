@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Profil Admin • Telegram Bot Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+            <i data-lucide="shield-check" class="w-7 h-7 text-cyan-400"></i>
+            <span>Pengaturan Akun Admin</span>
+        </h1>
+        <p class="text-sm text-gray-400 mt-1">Ubah username atau password login dashboard web portal Anda.</p>
+    </div>
+
+    <!-- Alert / Feedback Message -->
+    {% if msg %}
+    <div class="p-4 rounded-2xl {% if msg.success %}bg-emerald-950/60 border border-emerald-800 text-emerald-300{% else %}bg-red-950/60 border border-red-800 text-red-300{% endif %} flex items-center gap-3">
+        <i data-lucide="{% if msg.success %}check-circle{% else %}alert-circle{% endif %}" class="w-5 h-5 flex-shrink-0"></i>
+        <div>
+            <p class="text-xs font-semibold">{{ msg.text }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Profile Form Card -->
+    <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-6 shadow-sm">
+        <form action="/profile" method="POST" class="space-y-5">
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Username Login</label>
+                <input type="text" name="new_username" value="{{ user.username }}" required class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Password Baru (Kosongkan jika tidak ingin mengubah)</label>
+                <input type="password" name="new_password" placeholder="••••••••••••" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Konfirmasi Password Baru</label>
+                <input type="password" name="confirm_password" placeholder="••••••••••••" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+            </div>
+
+            <div class="pt-3 border-t border-gray-800/80 flex items-center justify-end space-x-3">
+                <a href="/" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white transition">Batal</a>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/20 transition">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Security Info Note -->
+    <div class="bg-gray-900/40 border border-gray-800/80 rounded-2xl p-4 text-xs text-gray-500 space-y-1">
+        <p class="font-semibold text-gray-400 flex items-center gap-1.5">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-cyan-400"></i>
+            <span>Catatan Keamanan:</span>
+        </p>
+        <p>Password Anda dienkripsi dengan SHA-256 dan salt unik. Sesi login tersimpan menggunakan signed cookie yang aman.</p>
+    </div>
+</div>
+{% endblock %}

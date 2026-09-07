@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+
+{% block title %}Direktori Pengguna & Manajemen VIP • Telegram Bot Hub{% endblock %}
+
+{% block content %}
+<div class="space-y-6 pb-12">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-slate-950 shadow-lg shadow-amber-500/20">
+                    <i data-lucide="crown" class="w-6 h-6 fill-slate-950"></i>
+                </div>
+                <span>Direktori Pengguna & Manajemen VIP</span>
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-400 mt-1.5 max-w-2xl">
+                Kelola hak akses pengguna, pantau masa aktif langganan VIP (tanggal beli, tanggal expired, dan sisa hari), serta kontrol status akun bot.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-medium flex items-center gap-2 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>Timezone: <strong>Asia/Jakarta (WIB)</strong></span>
+            </span>
+        </div>
+    </div>
+
+    <!-- 4 Modern Stat Metric Cards ala fahmiibrahim.my.id -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Total Users -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pengguna</span>
+                <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono">{{ total_users }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Tercatat di sistem database</div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500 to-transparent"></div>
+        </div>
+
+        <!-- VIP Member Aktif -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-amber-950/20 border border-amber-500/30 hover:border-amber-500/50 transition shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-300 uppercase tracking-wider">VIP Member Aktif</span>
+                <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 group-hover:scale-110 transition">
+                    <i data-lucide="crown" class="w-5 h-5 fill-amber-400"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-extrabold text-amber-300 font-mono">{{ active_vip_count }}</div>
+                <div class="text-[11px] text-amber-400/80 mt-0.5">Bebas kuota tanpa batas</div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 to-yellow-500"></div>
+        </div>
+
+        <!-- VIP Kedaluwarsa -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-rose-950/20 border border-rose-500/30 hover:border-rose-500/50 transition shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-rose-300 uppercase tracking-wider">VIP Kedaluwarsa</span>
+                <div class="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 group-hover:scale-110 transition">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-extrabold text-rose-400 font-mono">{{ expired_vip_count }}</div>
+                <div class="text-[11px] text-rose-400/80 mt-0.5">Perlu perpanjangan masa aktif</div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500 to-transparent"></div>
+        </div>
+
+        <!-- Pengguna Standar -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition shadow-sm relative overflow-hidden group">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pengguna Standar</span>
+                <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 group-hover:scale-110 transition">
+                    <i data-lucide="gauge" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div class="text-2xl sm:text-3xl font-extrabold text-slate-300 font-mono">{{ standard_count }}</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Mengikuti limit harian bot</div>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-slate-600 to-transparent"></div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Quick Filter Tabs -->
+        <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <button type="button" onclick="filterCards('all')" class="tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-600 text-white shadow-md transition" data-filter="all">
+                Semua Pengguna ({{ total_users }})
+            </button>
+            <button type="button" onclick="filterCards('vip')" class="tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 text-amber-300 hover:bg-amber-950/40 border border-slate-700 hover:border-amber-700 transition flex items-center gap-1.5" data-filter="vip">
+                <i data-lucide="crown" class="w-3.5 h-3.5 fill-amber-400"></i>
+                <span>VIP Aktif ({{ active_vip_count }})</span>
+            </button>
+            <button type="button" onclick="filterCards('expired')" class="tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 text-rose-300 hover:bg-rose-950/40 border border-slate-700 hover:border-rose-700 transition flex items-center gap-1.5" data-filter="expired">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                <span>Expired ({{ expired_vip_count }})</span>
+            </button>
+            <button type="button" onclick="filterCards('standard')" class="tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700 transition flex items-center gap-1.5" data-filter="standard">
+                <i data-lucide="gauge" class="w-3.5 h-3.5 text-slate-400"></i>
+                <span>Standar ({{ standard_count }})</span>
+            </button>
+        </div>
+
+        <!-- Search & Bot Dropdown Form -->
+        <form method="GET" action="/users" class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <div class="relative flex-1 sm:w-64">
+                <input type="text" name="search" value="{{ search or '' }}" placeholder="Cari nama, @username, ID..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+                <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-2.5"></i>
+            </div>
+
+            <select name="bot_id" onchange="this.form.submit()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition">
+                <option value="">-- Semua Bot --</option>
+                {% for b in bots %}
+                <option value="{{ b.id }}" {% if selected_bot_id == b.id %}selected{% endif %}>{{ b.name }} (@{{ b.username }})</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md shadow-cyan-950/40 transition">
+                Cari
+            </button>
+            {% if search or selected_bot_id %}
+            <a href="/users" class="text-xs text-slate-400 hover:text-white underline ml-1">Reset</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Modern User Cards Grid Container (NO TABLE!) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5" id="userCardsGrid">
+        {% for u in telegram_users %}
+        <div class="user-card bg-slate-900/70 border {% if u.vip_info.is_vip %}border-amber-500/40 shadow-amber-950/10 hover:border-amber-400/60{% elif u.vip_info.is_expired %}border-rose-900/50 hover:border-rose-700/60{% else %}border-slate-800 hover:border-slate-700{% endif %} hover:shadow-2xl hover:shadow-cyan-950/20 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden flex flex-col justify-between space-y-4 group"
+             data-type="{% if u.vip_info.is_vip %}vip{% elif u.vip_info.is_expired %}expired{% else %}standard{% endif %}"
+             data-name="{{ (u.first_name or '')|lower }} {{ (u.last_name or '')|lower }} {{ (u.username or '')|lower }} {{ u.telegram_id }}">
+            
+            <!-- Glow effect on hover -->
+            {% if u.vip_info.is_vip %}
+            <div class="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10"></div>
+            {% endif %}
+
+            <!-- Top Row: Avatar, User Details, Account Status -->
+            <div class="flex items-start justify-between gap-3 relative z-10">
+                <div class="flex items-center space-x-3.5">
+                    <!-- Avatar Container -->
+                    <div class="relative shrink-0">
+                        <div class="w-12 h-12 rounded-2xl {% if u.vip_info.is_vip %}bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-300 text-slate-950 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/30{% else %}bg-gradient-to-tr from-cyan-600 to-blue-700 text-white border border-slate-700 shadow-md{% endif %} flex items-center justify-center font-extrabold text-base">
+                            {{ (u.first_name or 'U')[0]|upper }}
+                        </div>
+                        {% if u.vip_info.is_vip %}
+                        <div class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-amber-400 flex items-center justify-center shadow-md">
+                            <i data-lucide="crown" class="w-3 h-3 fill-slate-950 text-slate-950"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- User Name & Username -->
+                    <div class="space-y-0.5">
+                        <div class="font-bold text-white text-base flex items-center gap-1.5 group-hover:text-cyan-300 transition leading-tight">
+                            <span>{{ u.first_name or 'No Name' }} {{ u.last_name or '' }}</span>
+                        </div>
+                        <div class="text-xs text-slate-400 flex items-center gap-1.5 font-mono">
+                            {% if u.username %}
+                            <a href="https://t.me/{{ u.username }}" target="_blank" class="text-cyan-400 hover:underline flex items-center gap-0.5">
+                                <span>@{{ u.username }}</span>
+                                <i data-lucide="external-link" class="w-3 h-3 inline"></i>
+                            </a>
+                            <span>•</span>
+                            {% endif %}
+                            <span class="text-slate-400">ID: {{ u.telegram_id }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Status Badge -->
+                <div class="shrink-0">
+                    {% if u.is_banned %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-950/80 border border-rose-800 text-rose-300">
+                        <i data-lucide="ban" class="w-3 h-3"></i>
+                        <span>DIBLOKIR</span>
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-950/60 border border-emerald-800 text-emerald-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Aktif</span>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Middle Section: VIP & Quota Showcase Box (Modern Card Inside Card) -->
+            <div class="relative z-10">
+                {% if u.vip_info.is_vip %}
+                    {% if u.vip_info.is_lifetime %}
+                    <!-- VIP Lifetime Box -->
+                    <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300">
+                                <i data-lucide="infinity" class="w-4 h-4 text-emerald-400"></i>
+                                <span>VIP LIFETIME (GLOBAL)</span>
+                            </span>
+                            <span class="text-[11px] font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                                Selamanya
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-300 leading-relaxed">
+                            Bebas akses tanpa batas kuota di <b>seluruh bot Telegram Hub</b> & tanpa batas waktu kedaluwarsa.
+                        </p>
+                    </div>
+                    {% else %}
+                    <!-- VIP Aktif Berdurasi Box (Highlighted) -->
+                    <div class="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 space-y-2.5 relative overflow-hidden">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                                <i data-lucide="crown" class="w-4 h-4 fill-amber-400 text-amber-400"></i>
+                                <span>VIP MEMBER AKTIF (GLOBAL)</span>
+                            </span>
+                            <span class="text-xs font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/50 px-2.5 py-0.5 rounded-lg shadow-sm">
+                                ⏳ Sisa {{ u.vip_info.remaining_text }}
+                            </span>
+                        </div>
+
+                        <!-- Grid Tanggal Beli & Expired -->
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-amber-500/20 text-xs">
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] uppercase font-semibold text-slate-400 block tracking-wider">Tanggal Beli</span>
+                                <span class="font-mono text-slate-200 text-[11px] block font-medium">{{ u.vip_info.started_str }}</span>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] uppercase font-bold text-amber-400 block tracking-wider">Tanggal Expired</span>
+                                <span class="font-mono text-amber-300 text-[11px] block font-bold">{{ u.vip_info.until_str }}</span>
+                            </div>
+                        </div>
+
+                        <div class="text-[11px] text-amber-400/90 flex items-center gap-1.5 pt-0.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>Berlaku tanpa batas kuota di semua bot Telegram</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% elif u.vip_info.is_expired %}
+                    <!-- VIP Expired Box -->
+                    <div class="p-3.5 rounded-xl bg-rose-950/20 border border-rose-500/30 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-rose-300">
+                                <i data-lucide="clock" class="w-4 h-4 text-rose-400"></i>
+                                <span>VIP KEDALUWARSA (GLOBAL)</span>
+                            </span>
+                            <span class="text-[11px] font-bold text-rose-300 bg-rose-950/80 px-2 py-0.5 rounded-md border border-rose-800">
+                                Habis
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-300">
+                            <span class="text-slate-400">Masa aktif habis pada:</span>
+                            <span class="font-mono font-semibold text-rose-300 ml-1">{{ u.vip_info.until_str }}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 italic">
+                            Akses pengguna otomatis kembali ke batas kuota standar bot.
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Pengguna Standar Box -->
+                    <div class="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300">
+                                <i data-lucide="gauge" class="w-4 h-4 text-slate-400"></i>
+                                <span>PENGGUNA STANDAR</span>
+                            </span>
+                            <span class="text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
+                                Kuota Bot
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">
+                            Mengikuti batas kuota standar dari masing-masing bot yang digunakan.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Information Row (Bot yang Digunakan & Stats) -->
+            <div class="space-y-2.5 relative z-10">
+                <!-- Bot yang Digunakan (Multi-Bot Badges) -->
+                <div class="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/80 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="text-slate-400 flex items-center gap-1.5 font-semibold">
+                            <i data-lucide="bot" class="w-3.5 h-3.5 text-cyan-400"></i>
+                            <span>Bot yang Digunakan:</span>
+                        </span>
+                        <span class="text-[10px] text-slate-500 font-mono">{{ u.bots|length }} Bot</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5 pt-0.5">
+                        {% for b in u.bots %}
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-200 hover:border-cyan-500/40 transition shadow-sm">
+                            <span class="text-xs">{% if b.bot_type == 'img2pdf' %}🖼️{% elif b.bot_type == 'mp3' %}🎵{% elif b.bot_type == 'mp4' %}🎬{% else %}🤖{% endif %}</span>
+                            <span class="font-medium text-slate-300">{{ b.bot_name }}</span>
+                            <span class="text-[10px] font-mono font-bold text-cyan-300 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-800/50">{{ b.ops }}x</span>
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 2 Grid Stats Mini -->
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-400 shrink-0">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="text-[10px] text-slate-500 block uppercase font-medium">Total Aktivitas</span>
+                            <span class="font-bold text-white font-mono text-sm leading-tight">{{ u.total_ops }}x</span>
+                        </div>
+                    </div>
+
+                    <div class="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800/80 flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 shrink-0">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="text-[10px] text-slate-500 block uppercase font-medium">Terakhir Aktif</span>
+                            <span class="text-[11px] text-slate-200 font-medium truncate block leading-tight">{{ u.last_active|jakarta_time }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Bottom Actions Footer -->
+            <div class="pt-3 border-t border-slate-800/80 flex items-center gap-2 relative z-10">
+                <!-- Tombol Kelola VIP Utama -->
+                <button type="button" 
+                    onclick="openVipModal({{ u.id }}, '{{ (u.first_name or 'User')|replace("'", "\\'") }}', '{{ u.telegram_id }}', '{{ u.vip_info.status_label }}', '{{ u.vip_info.until_str }}', {{ 1 if u.vip_info.is_vip else 0 }})"
+                    title="Atur Masa Aktif & Paket VIP" 
+                    class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold {% if u.vip_info.is_vip %}bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 shadow-lg shadow-amber-500/20{% else %}bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg shadow-cyan-950/40{% endif %} transition flex items-center justify-center gap-2 active:scale-95">
+                    <i data-lucide="crown" class="w-4 h-4 {% if u.vip_info.is_vip %}fill-slate-950{% endif %}"></i>
+                    <span>{% if u.vip_info.is_vip %}Kelola Akses VIP{% else %}Jadikan VIP Member{% endif %}</span>
+                </button>
+
+                <!-- Tombol Blokir / Buka Blokir -->
+                <form action="/api/users/{{ u.id }}/toggle-ban" method="POST" class="shrink-0">
+                    {% if u.is_banned %}
+                    <button type="submit" title="Buka blokir akun ini" class="p-2.5 rounded-xl bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-800 text-emerald-300 transition">
+                        <i data-lucide="unlock" class="w-4 h-4"></i>
+                    </button>
+                    {% else %}
+                    <button type="submit" title="Blokir pengguna ini dari bot" class="p-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800 text-rose-300 transition">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    </button>
+                    {% endif %}
+                </form>
+
+                <!-- Tombol Hapus Record -->
+                <form action="/api/users/{{ u.id }}/delete" method="POST" onsubmit="return confirm('Hapus pengguna ini dari database?')" class="shrink-0">
+                    <button type="submit" title="Hapus pengguna dari database" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-white transition">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="col-span-full py-16 text-center bg-slate-900/40 border border-slate-800 rounded-3xl p-8 space-y-3">
+            <div class="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto text-slate-500">
+                <i data-lucide="users" class="w-7 h-7"></i>
+            </div>
+            <h3 class="text-base font-bold text-white">Tidak ada pengguna yang sesuai</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">
+                Pengguna akan otomatis tercatat di dashboard ketika berinteraksi atau mengirim pesan ke bot Telegram Anda.
+            </p>
+            {% if search or selected_bot_id %}
+            <a href="/users" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                <span>Reset Pencarian</span>
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- MODAL ATUR VIP PENGGUNA (MODERN DIALOG) -->
+<div id="vipModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 hover:border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center text-slate-950 shadow-md shadow-amber-500/20">
+                    <i data-lucide="crown" class="w-5 h-5 fill-slate-950"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-white">Kelola Akses VIP Global</h3>
+                    <p class="text-xs text-slate-400" id="modalUserSubtitle">Atur paket langganan VIP (berlaku di semua bot)</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeVipModal()" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Status Saat Ini Info Box -->
+        <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3.5 text-xs space-y-1.5">
+            <div class="flex justify-between text-slate-400">
+                <span>Pengguna:</span>
+                <span id="modalUserName" class="font-bold text-white">-</span>
+            </div>
+            <div class="flex justify-between text-slate-400">
+                <span>Telegram ID:</span>
+                <span id="modalUserTelegramId" class="font-mono text-cyan-300">-</span>
+            </div>
+            <div class="flex justify-between text-slate-400">
+                <span>Status VIP Saat Ini:</span>
+                <span id="modalCurrentStatus" class="font-bold text-amber-300">-</span>
+            </div>
+            <div class="flex justify-between text-slate-400" id="modalCurrentUntilRow">
+                <span>Tanggal Expired Saat Ini:</span>
+                <span id="modalCurrentUntil" class="font-mono text-slate-200 font-semibold">-</span>
+            </div>
+        </div>
+
+        <!-- Form Submit VIP -->
+        <form id="vipForm" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-2">Pilih Paket Durasi VIP:</label>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <!-- 1 Minggu -->
+                    <label class="relative flex items-center p-3 rounded-2xl border border-slate-800 bg-slate-950/60 hover:border-amber-500/50 cursor-pointer transition">
+                        <input type="radio" name="duration_type" value="7d" class="text-amber-500 focus:ring-amber-500" onchange="toggleCustomDate(false)">
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-white">⚡ 7 Hari (1 Minggu)</span>
+                            <span class="block text-[11px] text-slate-400">Masa aktif 1 minggu</span>
+                        </div>
+                    </label>
+
+                    <!-- 1 Bulan (Rekomendasi) -->
+                    <label class="relative flex items-center p-3 rounded-2xl border-2 border-amber-500/60 bg-amber-950/20 hover:bg-amber-950/40 cursor-pointer transition">
+                        <input type="radio" name="duration_type" value="30d" checked class="text-amber-500 focus:ring-amber-500" onchange="toggleCustomDate(false)">
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-amber-300">⭐ 30 Hari (1 Bulan)</span>
+                            <span class="block text-[11px] text-amber-400/80">Paket Populer</span>
+                        </div>
+                    </label>
+
+                    <!-- 3 Bulan -->
+                    <label class="relative flex items-center p-3 rounded-2xl border border-slate-800 bg-slate-950/60 hover:border-amber-500/50 cursor-pointer transition">
+                        <input type="radio" name="duration_type" value="90d" class="text-amber-500 focus:ring-amber-500" onchange="toggleCustomDate(false)">
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-white">🌟 90 Hari (3 Bulan)</span>
+                            <span class="block text-[11px] text-slate-400">Masa aktif kuartal</span>
+                        </div>
+                    </label>
+
+                    <!-- 1 Tahun -->
+                    <label class="relative flex items-center p-3 rounded-2xl border border-slate-800 bg-slate-950/60 hover:border-amber-500/50 cursor-pointer transition">
+                        <input type="radio" name="duration_type" value="365d" class="text-amber-500 focus:ring-amber-500" onchange="toggleCustomDate(false)">
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-white">🏆 365 Hari (1 Tahun)</span>
+                            <span class="block text-[11px] text-slate-400">Masa aktif 1 tahun</span>
+                        </div>
+                    </label>
+
+                    <!-- Lifetime -->
+                    <label class="relative flex items-center p-3 rounded-2xl border border-slate-800 bg-slate-950/60 hover:border-emerald-500/50 cursor-pointer transition">
+                        <input type="radio" name="duration_type" value="lifetime" class="text-emerald-500 focus:ring-emerald-500" onchange="toggleCustomDate(false)">
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-emerald-300">♾️ Permanen (Lifetime)</span>
+                            <span class="block text-[11px] text-slate-400">Tanpa batas waktu</span>
+                        </div>
+                    </label>
+
+                    <!-- Custom Tanggal -->
+                    <label class="relative flex items-center p-3 rounded-2xl border border-slate-800 bg-slate-950/60 hover:border-cyan-500/50 cursor-pointer transition">
+                        <input type="radio" name="duration_type" value="custom" id="radioCustom" class="text-cyan-500 focus:ring-cyan-500" onchange="toggleCustomDate(true)">
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-cyan-300">📅 Tanggal Kustom</span>
+                            <span class="block text-[11px] text-slate-400">Pilih tanggal sendiri</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Input Tanggal Kustom (Tersembunyi bila tidak dipilih) -->
+            <div id="customDateContainer" class="hidden space-y-1.5">
+                <label class="block text-xs font-semibold text-cyan-300">Pilih Tanggal & Jam Kedaluwarsa (WIB):</label>
+                <input type="datetime-local" name="custom_until" id="inputCustomUntil" class="w-full bg-slate-950 border border-cyan-800 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                <p class="text-[11px] text-slate-500">Pilih tanggal dan jam pasti masa VIP berakhir (Waktu Indonesia Barat).</p>
+            </div>
+
+            <!-- Checkbox Extend -->
+            <div class="flex items-center space-x-2.5 pt-1">
+                <input type="checkbox" name="extend" value="true" checked id="checkExtend" class="w-4 h-4 rounded bg-slate-950 border-slate-800 text-amber-500 focus:ring-amber-500">
+                <label for="checkExtend" class="text-xs text-slate-300 cursor-pointer">
+                    Perpanjang dari tanggal expired saat ini (jika masih aktif)
+                </label>
+            </div>
+
+            <!-- Action Buttons inside Modal -->
+            <div class="flex items-center justify-between pt-4 border-t border-slate-800">
+                <!-- Tombol Cabut VIP -->
+                <button type="button" onclick="submitRemoveVip()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-950/40 border border-rose-900/60 transition">
+                    Cabut Status VIP
+                </button>
+
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="closeVipModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 shadow-md shadow-amber-900/30 transition flex items-center gap-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Terapkan Paket VIP</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentModalUserId = null;
+
+    function openVipModal(userId, name, telegramId, statusLabel, untilStr, isVip) {
+        currentModalUserId = userId;
+        document.getElementById('modalUserName').innerText = name;
+        document.getElementById('modalUserTelegramId').innerText = telegramId;
+        document.getElementById('modalCurrentStatus').innerText = statusLabel;
+        document.getElementById('modalCurrentUntil').innerText = untilStr || '-';
+        document.getElementById('vipForm').action = '/api/users/' + userId + '/set-vip';
+
+        // Set default custom date min ke sekarang
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('inputCustomUntil').min = now.toISOString().slice(0,16);
+
+        // Reset custom radio
+        document.getElementById('customDateContainer').classList.add('hidden');
+        document.getElementById('vipModal').classList.remove('hidden');
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    }
+
+    function closeVipModal() {
+        document.getElementById('vipModal').classList.add('hidden');
+    }
+
+    function toggleCustomDate(show) {
+        const c = document.getElementById('customDateContainer');
+        if (show) {
+            c.classList.remove('hidden');
+            const d = new Date();
+            d.setDate(d.getDate() + 30);
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            document.getElementById('inputCustomUntil').value = d.toISOString().slice(0,16);
+        } else {
+            c.classList.add('hidden');
+        }
+    }
+
+    function submitRemoveVip() {
+        if (!currentModalUserId) return;
+        if (confirm('Cabut status VIP pengguna ini dan kembalikan ke kuota standar?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/users/' + currentModalUserId + '/set-vip';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'duration_type';
+            input.value = 'remove';
+            form.appendChild(input);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // Client-side quick filter tabs
+    function filterCards(type) {
+        // Toggle tab styles
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === type) {
+                btn.className = 'tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-600 text-white shadow-md transition flex items-center gap-1.5';
+            } else {
+                btn.className = 'tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700 transition flex items-center gap-1.5';
+            }
+        });
+
+        const cards = document.querySelectorAll('.user-card');
+        cards.forEach(card => {
+            const cardType = card.getAttribute('data-type');
+            if (type === 'all' || cardType === type) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}
+
+

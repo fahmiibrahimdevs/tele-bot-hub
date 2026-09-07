@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Broadcast Pesan Massal • Telegram Bot Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
+                <i data-lucide="send" class="w-7 h-7 text-cyan-400"></i>
+                <span>Broadcast Pengumuman Telegram</span>
+            </h1>
+            <p class="text-sm text-gray-400 mt-1">Kirim pesan pengumuman massal ke seluruh pengguna aktif bot Telegram Anda.</p>
+        </div>
+    </div>
+
+    <!-- Alert / Feedback Message -->
+    {% if alert %}
+    <div class="p-4 rounded-2xl {% if alert.type == 'success' %}bg-emerald-950/60 border border-emerald-800 text-emerald-300{% else %}bg-red-950/60 border border-red-800 text-red-300{% endif %} flex items-center gap-3">
+        <i data-lucide="{% if alert.type == 'success' %}check-circle{% else %}alert-triangle{% endif %}" class="w-5 h-5 flex-shrink-0"></i>
+        <div>
+            <p class="font-bold text-sm">{{ alert.title }}</p>
+            <p class="text-xs mt-0.5">{{ alert.message }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Broadcast Form Card -->
+    <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
+        <form action="/api/broadcast" method="POST" class="space-y-6" onsubmit="return confirm('Apakah Anda yakin ingin mengirim broadcast ini ke seluruh pengguna terpilih?')">
+            <!-- Target Bot Selector -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Target Penerima Broadcast</label>
+                <select name="bot_id" required class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+                    <option value="all">📢 Semua Pengguna Terdaftar (Kirim dari semua bot aktif)</option>
+                    {% for b in bots %}
+                    <option value="{{ b.id }}">🤖 Hanya Pengguna {{ b.name }} (@{{ b.username }})</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1.5">Pengguna yang sedang dalam status <strong>DIBLOKIR</strong> akan otomatis dikecualikan.</p>
+            </div>
+
+            <!-- Message Textarea -->
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Isi Pesan Broadcast (Mendukung HTML)</label>
+                    <span class="text-xs text-cyan-400 font-mono">Format: HTML</span>
+                </div>
+                <textarea name="message_text" id="msg-input" rows="8" required placeholder="Tulis pesan pengumuman di sini...
+Contoh:
+🎉 <b>Pengumuman Update Terbaru!</b>
+Kini bot kami mendukung konversi lebih cepat dan tanpa batas kuota untuk akun VIP!" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono transition"></textarea>
+            </div>
+
+            <!-- HTML Tags Helper -->
+            <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-4 text-xs text-gray-400 space-y-2">
+                <span class="font-semibold text-gray-300 block">Panduan Format HTML Telegram yang Didukung:</span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
+                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                        <code>&lt;b&gt;Tebal&lt;/b&gt;</code>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                        <code>&lt;i&gt;Miring&lt;/i&gt;</code>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                        <code>&lt;code&gt;Kode&lt;/code&gt;</code>
+                    </div>
+                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
+                        <code>&lt;a href="..."&gt;Link&lt;/a&gt;</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-2 flex items-center justify-end space-x-3">
+                <a href="/" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition">Batal</a>
+                <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-cyan-500/20 transition">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Kirim Broadcast Sekarang</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Telegram Bot Hub{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono ala fahmiibrahim.my.id -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        dark: {
+                            950: '#030712',
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151'
+                        },
+                        brand: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #030712;
+            color: #f1f5f9;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#080c16] text-gray-100 antialiased">
+    <!-- Navbar -->
+    {% if user %}
+    <nav class="border-b border-gray-800/80 bg-[#0d1322]/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <!-- Logo -->
+                <div class="flex items-center space-x-3">
+                    <a href="/" class="flex items-center space-x-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition">
+                            <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-lg text-white tracking-wide">TeleBot<span class="text-cyan-400">Hub</span></span>
+                            <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-800 text-cyan-300 font-medium">WSL Portal</span>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="hidden md:flex items-center space-x-1 lg:space-x-3">
+                    <a href="/" class="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium {% if active_page == 'dashboard' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/30{% else %}text-gray-300 hover:text-white hover:bg-gray-800/50{% endif %} transition">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/users" class="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium {% if active_page == 'users' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/30{% else %}text-gray-300 hover:text-white hover:bg-gray-800/50{% endif %} transition">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Pengguna & Kuota</span>
+                    </a>
+                    <a href="/broadcast" class="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium {% if active_page == 'broadcast' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/30{% else %}text-gray-300 hover:text-white hover:bg-gray-800/50{% endif %} transition">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>Broadcast</span>
+                    </a>
+                    <a href="/logs" class="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium {% if active_page == 'logs' %}bg-cyan-500/10 text-cyan-400 border border-cyan-500/30{% else %}text-gray-300 hover:text-white hover:bg-gray-800/50{% endif %} transition">
+                        <i data-lucide="scroll-text" class="w-4 h-4"></i>
+                        <span>Logs</span>
+                    </a>
+                </div>
+
+                <!-- Right Side (User Profile & Logout) -->
+                <div class="flex items-center space-x-3">
+                    <a href="/profile" title="Pengaturan Akun" class="flex items-center space-x-2 border border-gray-800 hover:border-gray-700 rounded-lg px-3 py-1.5 bg-gray-900/60 hover:bg-gray-800/60 transition">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                        <span class="text-xs text-gray-300 font-medium">Admin: <strong class="text-white">{{ user.username }}</strong></span>
+                        <i data-lucide="settings" class="w-3.5 h-3.5 text-gray-400"></i>
+                    </a>
+                    <a href="/logout" class="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-950/40 border border-red-800/60 text-red-300 hover:bg-red-900/60 transition">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile sub-navigation -->
+        <div class="md:hidden flex overflow-x-auto border-t border-gray-800/60 px-4 py-2 space-x-2 text-xs">
+            <a href="/" class="px-2.5 py-1.5 rounded-md {% if active_page == 'dashboard' %}bg-cyan-900/50 text-cyan-300{% else %}text-gray-400{% endif %}">Dashboard</a>
+            <a href="/users" class="px-2.5 py-1.5 rounded-md {% if active_page == 'users' %}bg-cyan-900/50 text-cyan-300{% else %}text-gray-400{% endif %}">Pengguna</a>
+            <a href="/broadcast" class="px-2.5 py-1.5 rounded-md {% if active_page == 'broadcast' %}bg-cyan-900/50 text-cyan-300{% else %}text-gray-400{% endif %}">Broadcast</a>
+            <a href="/logs" class="px-2.5 py-1.5 rounded-md {% if active_page == 'logs' %}bg-cyan-900/50 text-cyan-300{% else %}text-gray-400{% endif %}">Logs</a>
+            <a href="/profile" class="px-2.5 py-1.5 rounded-md {% if active_page == 'profile' %}bg-cyan-900/50 text-cyan-300{% else %}text-gray-400{% endif %}">Profil</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800/80 py-6 text-center text-xs text-gray-500">
+        <p>© 2026 Telegram Bot Hub Portal • Fahmi Ibrahim • WSL2 Ubuntu</p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
