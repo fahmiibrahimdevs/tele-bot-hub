@@ -21,6 +21,7 @@ from app.database import (
     delete_bot,
     set_bot_status,
     get_recent_logs,
+    get_logs_count,
     get_stats,
     get_all_telegram_users,
     toggle_user_unlimited,
@@ -384,16 +385,49 @@ async def profile_submit(
 
 @app.get("/logs", response_class=HTMLResponse)
 async def logs_page(request: Request, user: dict = Depends(require_auth)):
-    logs = await get_recent_logs(limit=100)
+    limit = 20
+    logs = await get_recent_logs(limit=limit, offset=0)
+    total_count = await get_logs_count()
     return templates.TemplateResponse(
         request=request,
         name="logs.html",
         context={
             "user": user,
             "logs": logs,
+            "total_count": total_count,
+            "limit": limit,
+            "has_more": total_count > len(logs),
             "active_page": "logs"
         }
     )
+
+
+@app.get("/api/logs")
+async def api_get_logs(
+    limit: int = 20,
+    offset: int = 0,
+    user: dict = Depends(require_auth)
+):
+    limit = min(max(1, limit), 100)
+    offset = max(0, offset)
+    logs = await get_recent_logs(limit=limit, offset=offset)
+    total_count = await get_logs_count()
+
+    formatted_logs = []
+    for l in logs:
+        item = dict(l)
+        item["created_at_formatted"] = format_jakarta_time(l.get("created_at"))
+        formatted_logs.append(item)
+
+    return JSONResponse(content={
+        "ok": True,
+        "logs": formatted_logs,
+        "offset": offset,
+        "limit": limit,
+        "count": len(formatted_logs),
+        "total_count": total_count,
+        "has_more": (offset + len(formatted_logs)) < total_count
+    })
 
 
 # --- BOTS MANAGEMENT CRUD ---

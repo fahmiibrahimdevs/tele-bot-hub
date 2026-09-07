@@ -4,15 +4,22 @@
 
 {% block content %}
 <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-white tracking-tight">Activity & Operation Logs</h1>
-            <p class="text-sm text-gray-400 mt-1">Riwayat pemrosesan dokumen, audio, video, dan status worker bot</p>
+            <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+                <span>Activity & Operation Logs</span>
+                <span class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-300 font-normal">
+                    <span id="count-loaded">{{ logs|length }}</span> / <span id="count-total" class="text-cyan-400 font-semibold">{{ total_count }}</span> Log
+                </span>
+            </h1>
+            <p class="text-sm text-gray-400 mt-1">Riwayat pemrosesan dokumen, audio, video, dan aktivitas worker bot</p>
         </div>
-        <a href="/logs" class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-gray-800 border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white transition">
-            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-            <span>Refresh Log</span>
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="/logs" class="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-gray-800/80 hover:bg-gray-700 border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white transition">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Refresh Log</span>
+            </a>
+        </div>
     </div>
 
     <div class="bg-gray-900/60 border border-gray-800 rounded-2xl overflow-hidden shadow-xl">
@@ -27,14 +34,18 @@
                         <th class="px-6 py-4">Rincian</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-800/60 text-gray-300">
+                <tbody id="logs-table-body" class="divide-y divide-gray-800/60 text-gray-300">
                     {% for log in logs %}
                     <tr class="hover:bg-gray-800/30 transition">
                         <td class="px-6 py-4 text-xs font-mono text-gray-300 whitespace-nowrap">
                             {{ log.created_at|jakarta_time }}
                         </td>
                         <td class="px-6 py-4 font-medium text-white whitespace-nowrap">
-                            @{{ log.bot_username or 'System' }}
+                            {% if log.bot_username %}
+                            <span class="text-cyan-400 font-mono text-xs">@{{ log.bot_username }}</span>
+                            {% else %}
+                            <span class="text-gray-400 font-mono text-xs">System</span>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <span class="text-xs px-2.5 py-1 rounded-md bg-gray-800 border border-gray-700 font-mono text-cyan-300">
@@ -59,7 +70,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr>
+                    <tr id="row-empty">
                         <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                             <i data-lucide="scroll-text" class="w-10 h-10 mx-auto mb-2 text-gray-600"></i>
                             <p>Belum ada catatan aktivitas.</p>
@@ -69,6 +80,137 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Load More Footer -->
+        <div id="load-more-container" class="p-4 border-t border-gray-800/80 bg-gray-950/40 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+            <div class="text-gray-400 flex items-center gap-2">
+                <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+                <span>Menampilkan <strong id="text-showing-count" class="text-white">{{ logs|length }}</strong> dari <strong id="text-total-count" class="text-cyan-400">{{ total_count }}</strong> log</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="btn-load-more" onclick="loadMoreLogs()" class="{% if not has_more %}hidden{% endif %} inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 hover:border-cyan-700/60 border border-gray-700 text-gray-200 hover:text-white font-semibold transition shadow-sm group">
+                    <i data-lucide="arrow-down-circle" class="w-4 h-4 text-cyan-400 group-hover:translate-y-0.5 transition transform"></i>
+                    <span id="btn-load-more-text">Muat 20 Log Lagi (Load More)</span>
+                </button>
+                <span id="text-all-loaded" class="{% if has_more %}hidden{% endif %} text-gray-500 font-medium italic flex items-center gap-1.5 py-1">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Semua log telah dimuat</span>
+                </span>
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentOffset = {{ logs|length }};
+    const limit = {{ limit }};
+    let totalCount = {{ total_count }};
+    let isLoading = false;
+
+    async function loadMoreLogs() {
+        if (isLoading) return;
+        isLoading = true;
+
+        const btn = document.getElementById('btn-load-more');
+        const btnText = document.getElementById('btn-load-more-text');
+        const origText = btnText ? btnText.textContent : 'Muat 20 Log Lagi (Load More)';
+
+        if (btn) btn.classList.add('opacity-75', 'cursor-not-allowed');
+        if (btnText) btnText.innerHTML = `<span>Sedang memuat data log...</span>`;
+
+        try {
+            const res = await fetch(`/api/logs?offset=${currentOffset}&limit=${limit}`);
+            const data = await res.json();
+
+            if (data.ok && data.logs && data.logs.length > 0) {
+                const tbody = document.getElementById('logs-table-body');
+                
+                data.logs.forEach(log => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-800/30 transition";
+
+                    const statusBadge = log.status === 'success'
+                        ? `<span class="inline-flex items-center space-x-1 text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-300"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1"></span><span>Sukses</span></span>`
+                        : `<span class="inline-flex items-center space-x-1 text-xs px-2.5 py-0.5 rounded-full bg-red-950 border border-red-800 text-red-300"><span class="w-1.5 h-1.5 rounded-full bg-red-400 mr-1"></span><span>Gagal</span></span>`;
+
+                    const botUsername = log.bot_username 
+                        ? `<span class="text-cyan-400 font-mono text-xs">@${escapeHtml(log.bot_username)}</span>`
+                        : `<span class="text-gray-400 font-mono text-xs">System</span>`;
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 text-xs font-mono text-gray-300 whitespace-nowrap">
+                            ${escapeHtml(log.created_at_formatted || log.created_at)}
+                        </td>
+                        <td class="px-6 py-4 font-medium text-white whitespace-nowrap">
+                            ${botUsername}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="text-xs px-2.5 py-1 rounded-md bg-gray-800 border border-gray-700 font-mono text-cyan-300">
+                                ${escapeHtml(log.action || '-')}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${statusBadge}
+                        </td>
+                        <td class="px-6 py-4 text-xs text-gray-400">
+                            ${escapeHtml(log.details || '-')}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                currentOffset += data.logs.length;
+                totalCount = data.total_count;
+
+                // Update badge & texts
+                const textShowing = document.getElementById('text-showing-count');
+                const countLoaded = document.getElementById('count-loaded');
+                const textTotal = document.getElementById('text-total-count');
+                const countTotal = document.getElementById('count-total');
+
+                if (textShowing) textShowing.textContent = currentOffset;
+                if (countLoaded) countLoaded.textContent = currentOffset;
+                if (textTotal) textTotal.textContent = totalCount;
+                if (countTotal) countTotal.textContent = totalCount;
+
+                if (!data.has_more || currentOffset >= totalCount) {
+                    if (btn) btn.classList.add('hidden');
+                    const allLoaded = document.getElementById('text-all-loaded');
+                    if (allLoaded) allLoaded.classList.remove('hidden');
+                }
+
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            } else {
+                if (btn) btn.classList.add('hidden');
+                const allLoaded = document.getElementById('text-all-loaded');
+                if (allLoaded) allLoaded.classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error("Error loading more logs:", err);
+            if (typeof showAlert !== 'undefined') {
+                showAlert({
+                    title: 'Gagal Memuat Log',
+                    text: 'Terjadi kesalahan saat memuat log aktivitas tambahan.',
+                    icon: 'error'
+                });
+            }
+        } finally {
+            isLoading = false;
+            if (btn) btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            if (btnText) btnText.textContent = origText;
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
 {% endblock %}
