@@ -7,6 +7,7 @@ import psutil
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 from app.database import (
     init_db,
@@ -31,7 +32,8 @@ from app.database import (
     purge_storage_temp_files,
     format_date_id,
     parse_datetime_flexible,
-    log_activity
+    log_activity,
+    get_analytics_chart_data
 )
 from app.auth import create_session_token, get_current_user, require_auth, COOKIE_NAME
 from app.bot_manager import bot_manager
@@ -43,6 +45,10 @@ from packaging.version import parse as parse_version
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if not os.path.exists(STATIC_DIR):
+    os.makedirs(STATIC_DIR, exist_ok=True)
 
 def format_jakarta_time(val):
     if not val:
@@ -68,6 +74,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Telegram Bot Hub Portal", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 # --- AUTHENTICATION ROUTES ---
@@ -591,8 +598,9 @@ async def api_storage_purge(user: dict = Depends(require_auth)):
     })
 
 
-# --- ANALYTICS CHARTS API ---
+# --- ANALYTICS & DASHBOARD CHARTS API ---
 
+@app.get("/api/dashboard/chart-data")
 @app.get("/api/analytics/charts")
 async def api_analytics_charts(user: dict = Depends(require_auth)):
     data = await get_analytics_chart_data()

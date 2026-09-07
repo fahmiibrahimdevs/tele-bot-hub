@@ -6,10 +6,20 @@
     <title>{% block title %}Telegram Bot Hub{% endblock %}</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons (Local + CDN Fallback) -->
+    <script src="/static/js/lucide.min.js"></script>
+    <script>
+        if (typeof lucide === 'undefined') {
+            document.write('<script src="https://unpkg.com/lucide@latest"><\/script>');
+        }
+    </script>
+    <!-- Chart.js (Local + CDN Fallback) -->
+    <script src="/static/js/chart.umd.min.js"></script>
+    <script>
+        if (typeof Chart === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"><\/script>');
+        }
+    </script>
     <!-- Google Fonts: Inter & JetBrains Mono ala fahmiibrahim.my.id -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
