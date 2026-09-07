@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from aiogram import Bot, Dispatcher, Router
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -154,6 +155,11 @@ class BotManager:
         return None
 
     async def start_bot(self, bot_data: dict, is_maintenance: bool = False) -> bool:
+        enable_polling = os.getenv("ENABLE_BOT_POLLING", "true").strip().lower()
+        if enable_polling in ("false", "0", "no", "off"):
+            logger.info(f"Start bot #{bot_data.get('id')} diabaikan karena ENABLE_BOT_POLLING=false.")
+            return False
+
         bot_id = bot_data["id"]
         # Hentikan instance lama jika ada
         if bot_id in self.instances:
@@ -198,6 +204,11 @@ class BotManager:
         return await self.start_bot(bot_data, is_maintenance=is_maint)
 
     async def load_and_start_all(self):
+        enable_polling = os.getenv("ENABLE_BOT_POLLING", "true").strip().lower()
+        if enable_polling in ("false", "0", "no", "off"):
+            logger.info("⏸️ Bot polling dinonaktifkan via environment variable ENABLE_BOT_POLLING=false.")
+            return
+
         bots = await get_all_bots()
         for b in bots:
             # Jika is_active == 1: start normal

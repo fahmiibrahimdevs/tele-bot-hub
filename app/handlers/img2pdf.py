@@ -30,18 +30,37 @@ user_last_quota_alert: dict[int, dict[int, float]] = {}
 def get_user_session(bot_id: int, user_id: int) -> dict:
     if bot_id not in user_sessions:
         user_sessions[bot_id] = {}
-    if user_id not in user_sessions[bot_id]:
-        user_sessions[bot_id][user_id] = {
-            "images": {},           # {message_id: file_path}
-            "custom_filename": "",
-            "state": "idle",
-            "active_card_id": None, # ID kartu pesan aktif (loading / status card)
-            "all_card_ids": set(),  # Set dari seluruh ID pesan kartu untuk pembersihan tuntas
-            "prompt_msg_id": None,
-            "pending_downloads": 0,
-            "debounce_task": None,
-            "lock": asyncio.Lock()
-        }
+    
+    now = time.time()
+    if user_id in user_sessions[bot_id]:
+        sess = user_sessions[bot_id][user_id]
+        # Jika sesi ditinggalkan (idle) lebih dari 2 jam, bersihkan storage & reset antrean
+        if now - sess.get("last_activity", now) > 7200:
+            user_dir = os.path.join(STORAGE_DIR, f"i2p_{bot_id}_{user_id}")
+            if os.path.exists(user_dir):
+                shutil.rmtree(user_dir, ignore_errors=True)
+            sess["images"].clear()
+            sess["custom_filename"] = ""
+            sess["state"] = "idle"
+            sess["active_card_id"] = None
+            sess["all_card_ids"].clear()
+            sess["prompt_msg_id"] = None
+            sess["pending_downloads"] = 0
+        sess["last_activity"] = now
+        return sess
+
+    user_sessions[bot_id][user_id] = {
+        "images": {},           # {message_id: file_path}
+        "custom_filename": "",
+        "state": "idle",
+        "active_card_id": None, # ID kartu pesan aktif (loading / status card)
+        "all_card_ids": set(),  # Set dari seluruh ID pesan kartu untuk pembersihan tuntas
+        "prompt_msg_id": None,
+        "pending_downloads": 0,
+        "debounce_task": None,
+        "lock": asyncio.Lock(),
+        "last_activity": now
+    }
     return user_sessions[bot_id][user_id]
 
 
@@ -464,6 +483,10 @@ async def handle_unsupported_media(message: Message):
 
 async def cb_edit_name(callback: CallbackQuery, bot: Bot, bot_id: int = 0):
     session = get_user_session(bot_id, callback.from_user.id)
+    if not session.get("images"):
+        await callback.answer("⚠️ Sesi foto telah kedaluwarsa atau antrean kosong. Silakan kirimkan foto kembali.", show_alert=True)
+        return
+
     session["state"] = "waiting_filename"
 
     keyboard = InlineKeyboardMarkup(

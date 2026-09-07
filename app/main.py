@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import asyncio
 import os
 import platform
 import time
@@ -65,6 +66,8 @@ templates.env.filters["jakarta_time"] = format_jakarta_time
 async def lifespan(app: FastAPI):
     # Startup
     await init_db()
+    # Bersihkan sisa file sementara storage dari crash/restart sebelumnya
+    purge_storage_temp_files()
     # Call cpu_percent once to initialize psutil baseline
     psutil.cpu_percent(interval=None)
     await bot_manager.load_and_start_all()

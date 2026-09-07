@@ -34,16 +34,32 @@ user_last_quota_alert_mp3: dict[int, dict[int, float]] = {}
 def get_user_session(bot_id: int, user_id: int) -> dict:
     if bot_id not in user_mp3_sessions:
         user_mp3_sessions[bot_id] = {}
-    if user_id not in user_mp3_sessions[bot_id]:
-        user_mp3_sessions[bot_id][user_id] = {
-            "current_url": None,
-            "video_info": None,
-            "custom_filename": "",
-            "state": "idle",
-            "info_msg_id": None,
-            "prompt_msg_id": None,
-            "is_downloading": False
-        }
+    
+    now = time.time()
+    if user_id in user_mp3_sessions[bot_id]:
+        sess = user_mp3_sessions[bot_id][user_id]
+        if now - sess.get("last_activity", now) > 3600 and not sess.get("is_downloading"):
+            user_dir = os.path.join(STORAGE_DIR, f"mp3_{bot_id}_{user_id}")
+            cleanup_user_dir(user_dir)
+            sess["current_url"] = None
+            sess["video_info"] = None
+            sess["custom_filename"] = ""
+            sess["state"] = "idle"
+            sess["info_msg_id"] = None
+            sess["prompt_msg_id"] = None
+        sess["last_activity"] = now
+        return sess
+
+    user_mp3_sessions[bot_id][user_id] = {
+        "current_url": None,
+        "video_info": None,
+        "custom_filename": "",
+        "state": "idle",
+        "info_msg_id": None,
+        "prompt_msg_id": None,
+        "is_downloading": False,
+        "last_activity": now
+    }
     return user_mp3_sessions[bot_id][user_id]
 
 
@@ -374,6 +390,14 @@ async def handle_url(message: Message, bot: Bot, bot_id: int = 0, bot_config: di
 
 async def cb_rename(callback: CallbackQuery, bot: Bot, bot_id: int = 0):
     session = get_user_session(bot_id, callback.from_user.id)
+    if not session.get("video_info"):
+        await callback.answer("⚠️ Sesi unduhan telah kedaluwarsa. Silakan kirimkan link kembali.", show_alert=True)
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        return
+
     session["state"] = "waiting_filename"
 
     keyboard = InlineKeyboardMarkup(
