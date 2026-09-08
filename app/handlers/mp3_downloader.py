@@ -16,7 +16,8 @@ from app.handlers.common import (
     cleanup_user_dir,
     clean_and_validate_media_url,
     fetch_content_length,
-    parse_duration_seconds
+    parse_duration_seconds,
+    safe_chat_action
 )
 from app.database import (
     log_activity,
@@ -83,10 +84,10 @@ def estimate_audio_sizes(duration_sec: float = 0, info: dict = None) -> dict:
     # Fallback jika durasi tidak terdeteksi dari metadata platform
     if info:
         formats = info.get('formats') or []
-        for f in formats:
+        for f in formats[:3]:
             sz = f.get('filesize') or f.get('filesize_approx')
             if not sz and f.get('url'):
-                sz = fetch_content_length(f.get('url'))
+                sz = fetch_content_length(f.get('url'), timeout=2.0)
             if sz:
                 base_mb = sz / (1024 * 1024)
                 return {
@@ -314,11 +315,8 @@ async def handle_url(message: Message, bot: Bot, bot_id: int = 0, bot_config: di
 
     session_id = str(uuid.uuid4())[:8]
 
-    # Kirim chat action typing di header chat
-    try:
-        await bot.send_chat_action(chat_id=message.chat.id, action="typing")
-    except Exception:
-        pass
+    # Kirim chat action typing di header chat (non-blocking & safe)
+    asyncio.create_task(safe_chat_action(bot, message.chat.id, "typing"))
 
     status_msg = await message.answer("🔍 <b>Mengambil informasi audio...</b>\n<i>Mohon tunggu sebentar...</i>", parse_mode="HTML")
     session["info_msg_id"] = status_msg.message_id

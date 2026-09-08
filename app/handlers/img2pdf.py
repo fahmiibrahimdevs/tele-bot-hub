@@ -10,7 +10,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 import img2pdf
 from PIL import Image
 
-from app.handlers.common import STORAGE_DIR, sanitize_filename
+from app.handlers.common import STORAGE_DIR, sanitize_filename, safe_chat_action
 from app.database import (
     log_activity,
     track_or_update_telegram_user,
@@ -122,11 +122,8 @@ async def ensure_loading_feedback(bot: Bot, chat_id: int, user_id: int, bot_id: 
     """
     session = get_user_session(bot_id, user_id)
 
-    # 1. Native chat action 'upload_photo'
-    try:
-        await bot.send_chat_action(chat_id=chat_id, action="upload_photo")
-    except Exception:
-        pass
+    # 1. Native chat action 'upload_photo' (non-blocking & safe)
+    asyncio.create_task(safe_chat_action(bot, chat_id, "upload_photo"))
 
     async with session["lock"]:
         # Jika bukan batch baru dan sudah ada kartu aktif, jangan buat kartu loading baru
@@ -221,8 +218,8 @@ def schedule_debounced_card_update(bot: Bot, chat_id: int, user_id: int, bot_id:
 
     async def _runner():
         try:
-            # Tunggu 1.5 detik agar semua foto dalam batch/album selesai terkirim
-            await asyncio.sleep(1.5)
+            # Tunggu 0.6 detik agar semua foto dalam batch/album selesai terkirim
+            await asyncio.sleep(0.6)
             # Pastikan tidak ada proses download yang masih tertunda
             while session.get("pending_downloads", 0) > 0:
                 await asyncio.sleep(0.3)

@@ -86,7 +86,7 @@ class BotInstance:
                 await self.bot.delete_webhook(drop_pending_updates=True)
                 mode_str = "MAINTENANCE" if self.is_maintenance else "NORMAL"
                 logger.info(f"Bot #{self.bot_id} polling started [{mode_str}].")
-                await self.dp.start_polling(self.bot, handle_as_tasks=False)
+                await self.dp.start_polling(self.bot, handle_as_tasks=True, handle_signals=False)
             except asyncio.CancelledError:
                 logger.info(f"Bot #{self.bot_id} polling stopped (cancelled).")
             except Exception as e:
@@ -219,8 +219,8 @@ class BotManager:
 
     async def stop_all(self):
         bot_ids = list(self.instances.keys())
-        for bid in bot_ids:
-            await self.stop_bot(bid)
+        if bot_ids:
+            await asyncio.gather(*(self.stop_bot(bid) for bid in bot_ids), return_exceptions=True)
 
     async def broadcast_message(self, recipients: list[dict], message_text: str, default_bot_id: int = None) -> dict:
         success = 0

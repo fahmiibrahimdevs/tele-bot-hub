@@ -114,7 +114,7 @@ def clean_and_validate_media_url(raw_url: str) -> tuple[str, bool, str]:
         return url, False, ""
 
 
-def fetch_content_length(url: str, timeout: float = 3.0) -> int | None:
+def fetch_content_length(url: str, timeout: float = 2.0) -> int | None:
     """
     Melakukan HTTP HEAD request cepat untuk membaca Content-Length dari direct stream URL (Facebook, IG, TikTok, dll).
     """
@@ -190,4 +190,16 @@ def parse_duration_seconds(val) -> float:
         except Exception:
             return 0.0
     return 0.0
+
+
+async def safe_chat_action(bot, chat_id: int, action: str):
+    """
+    Kirim chat action (typing, upload_photo, upload_document, upload_video, dll) secara aman.
+    Menelan exception (seperti bot diblokir pengguna, chat dihapus, timeout Telegram)
+    agar tidak menghasilkan unhandled task exception saat dijalankan di background via create_task.
+    """
+    try:
+        await bot.send_chat_action(chat_id=chat_id, action=action)
+    except Exception:
+        pass
 

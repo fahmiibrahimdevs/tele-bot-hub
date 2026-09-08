@@ -18,7 +18,8 @@ from app.handlers.common import (
     clean_and_validate_media_url,
     fetch_content_length,
     infer_effective_height,
-    parse_duration_seconds
+    parse_duration_seconds,
+    safe_chat_action
 )
 from app.database import (
     log_activity,
@@ -376,11 +377,8 @@ async def handle_url(message: Message, bot: Bot, bot_id: int = 0, bot_config: di
 
     session_id = str(uuid.uuid4())[:8]
 
-    # Kirim chat action typing di header chat
-    try:
-        await bot.send_chat_action(chat_id=message.chat.id, action="typing")
-    except Exception:
-        pass
+    # Kirim chat action typing di header chat (non-blocking & safe)
+    asyncio.create_task(safe_chat_action(bot, message.chat.id, "typing"))
 
     status_msg = await message.answer("🔍 <b>Mengambil informasi video...</b>\n<i>Mohon tunggu sebentar...</i>", parse_mode="HTML")
     session["info_msg_id"] = status_msg.message_id
