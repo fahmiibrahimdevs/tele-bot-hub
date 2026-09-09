@@ -3,19 +3,27 @@
 {% block title %}Broadcast Pesan Massal • Telegram Bot Hub{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Header -->
+<div class="space-y-6">
+    <!-- Header Page (Aligned with Navbar max-w-7xl) -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-                <i data-lucide="send" class="w-7 h-7 text-cyan-400"></i>
+                <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-sm">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </div>
                 <span>Broadcast Pengumuman Telegram</span>
             </h1>
-            <p class="text-sm text-gray-400 mt-1">Kirim pesan pengumuman massal ke seluruh pengguna aktif bot Telegram Anda.</p>
+            <p class="text-sm text-gray-400 mt-1">Kirim pesan pengumuman massal ke seluruh pengguna bot dengan editor WYSIWYG dan pratinjau langsung.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-900/80 border border-gray-800 text-gray-300">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                <span>Telegram Bot API 7.x</span>
+            </span>
         </div>
     </div>
 
-    <!-- Alert / Feedback Message -->
+    <!-- Feedback Alert Message -->
     {% if alert %}
     <div class="p-4 rounded-2xl {% if alert.type == 'success' %}bg-emerald-950/60 border border-emerald-800 text-emerald-300{% else %}bg-red-950/60 border border-red-800 text-red-300{% endif %} flex items-center gap-3">
         <i data-lucide="{% if alert.type == 'success' %}check-circle{% else %}alert-triangle{% endif %}" class="w-5 h-5 flex-shrink-0"></i>
@@ -26,61 +34,794 @@
     </div>
     {% endif %}
 
-    <!-- Broadcast Form Card -->
-    <div class="bg-[#111827]/70 border border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
-        <form action="/api/broadcast" method="POST" class="space-y-6" onsubmit="return confirmForm(event, 'Apakah Anda yakin ingin mengirim pesan broadcast ini ke seluruh pengguna terpilih sekarang?', false)">
-            <!-- Target Bot Selector -->
-            <div>
-                <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">Target Penerima Broadcast</label>
-                <select name="bot_id" required class="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
-                    <option value="all">📢 Semua Pengguna Terdaftar (Kirim dari semua bot aktif)</option>
-                    {% for b in bots %}
-                    <option value="{{ b.id }}">🤖 Hanya Pengguna {{ b.name }} (@{{ b.username }})</option>
-                    {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-1.5">Pengguna yang sedang dalam status <strong>DIBLOKIR</strong> akan otomatis dikecualikan.</p>
-            </div>
+    <!-- Mobile Tabs Navigation (Visible on mobile/tablet screens < lg) -->
+    <div class="lg:hidden flex rounded-xl bg-gray-900/90 p-1 border border-gray-800 shadow-sm">
+        <button type="button" id="tab-editor-btn" onclick="switchMobileTab('editor')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-cyan-600 text-white flex items-center justify-center gap-2 transition">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <span>Editor Pesan</span>
+        </button>
+        <button type="button" id="tab-preview-btn" onclick="switchMobileTab('preview')" class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-white flex items-center justify-center gap-2 transition">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+            <span>Preview Telegram</span>
+        </button>
+    </div>
 
-            <!-- Message Textarea -->
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Isi Pesan Broadcast (Mendukung HTML)</label>
-                    <span class="text-xs text-cyan-400 font-mono">Format: HTML</span>
+    <!-- Main Content Grid (Aligned with navbar) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Left Column: WYSIWYG Editor & Form -->
+        <div id="editor-column" class="lg:col-span-7 xl:col-span-8 bg-[#111827]/70 border border-gray-800 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5 transition-all">
+            <form action="/api/broadcast" method="POST" id="broadcast-form" class="space-y-5" onsubmit="return confirmBroadcast(event)">
+                <!-- Target Bot Selector -->
+                <div>
+                    <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2">
+                        Target Penerima Broadcast <span class="text-cyan-400">*</span>
+                    </label>
+                    <div class="relative">
+                        <select name="bot_id" id="bot-select" required onchange="updateBotPreview()" class="w-full bg-gray-900/90 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition appearance-none pr-10">
+                            <option value="all" data-name="Semua Pengguna Terdaftar" data-username="Telegram Bot Hub">📢 Semua Pengguna Terdaftar (Kirim dari semua bot aktif)</option>
+                            {% for b in bots %}
+                            <option value="{{ b.id }}" data-name="{{ b.name }}" data-username="{{ b.username }}">🤖 Pengguna {{ b.name }} (@{{ b.username }})</option>
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1.5 flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        <span>Pengguna yang diblokir oleh administrator akan otomatis dilewati.</span>
+                    </p>
                 </div>
-                <textarea name="message_text" id="msg-input" rows="8" required placeholder="Tulis pesan pengumuman di sini...
-Contoh:
-🎉 <b>Pengumuman Update Terbaru!</b>
-Kini bot kami mendukung konversi lebih cepat dan tanpa batas kuota untuk akun VIP!" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-cyan-500 font-mono transition"></textarea>
+
+                <!-- Template Selector Quick Buttons -->
+                <div class="space-y-2">
+                    <span class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Template Pesan Cepat:</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button type="button" onclick="insertTemplate('announcement')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-900 border border-gray-800 hover:border-cyan-500 text-gray-300 hover:text-cyan-400 transition">
+                            <span>📢</span>
+                            <span>Pengumuman Update</span>
+                        </button>
+                        <button type="button" onclick="insertTemplate('maintenance')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-900 border border-gray-800 hover:border-amber-500 text-gray-300 hover:text-amber-400 transition">
+                            <span>🛠️</span>
+                            <span>Jadwal Maintenance</span>
+                        </button>
+                        <button type="button" onclick="insertTemplate('feature')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-900 border border-gray-800 hover:border-emerald-500 text-gray-300 hover:text-emerald-400 transition">
+                            <span>🚀</span>
+                            <span>Fitur Baru</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- WYSIWYG Editor Container -->
+                <div id="editor-container" class="space-y-1.5">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                            Isi Pesan Broadcast <span class="text-cyan-400">*</span>
+                        </label>
+                        <span id="char-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono bg-gray-900 border border-gray-800 text-gray-400">
+                            0 / 4096 Karakter
+                        </span>
+                    </div>
+
+                    <!-- Editor Box -->
+                    <div class="bg-gray-950/80 rounded-2xl border border-gray-800 shadow-inner overflow-hidden focus-within:border-cyan-500 transition-colors">
+                        <!-- WYSIWYG Toolbar (ala Portofolio RichTextEditor) -->
+                        <div class="flex items-center justify-between px-3 py-2 bg-slate-900/90 border-b border-gray-800 gap-1.5 flex-wrap">
+                            <!-- Left Controls: Formatters -->
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <!-- Bold -->
+                                <button type="button" onclick="wrapSelection('<b>', '</b>', 'teks tebal')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Tebal (Ctrl+B)">
+                                    <i data-lucide="bold" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Italic -->
+                                <button type="button" onclick="wrapSelection('<i>', '</i>', 'teks miring')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Miring (Ctrl+I)">
+                                    <i data-lucide="italic" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Underline -->
+                                <button type="button" onclick="wrapSelection('<u>', '</u>', 'teks garis bawah')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Garis Bawah (Ctrl+U)">
+                                    <i data-lucide="underline" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Strikethrough -->
+                                <button type="button" onclick="wrapSelection('<s>', '</s>', 'teks coret')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Coret / Strikethrough">
+                                    <i data-lucide="strikethrough" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Telegram Spoiler -->
+                                <button type="button" onclick="wrapSelection('<tg-spoiler>', '</tg-spoiler>', 'teks rahasia')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Spoiler Telegram (Teks Tertutup)">
+                                    <i data-lucide="eye-off" class="w-4 h-4 text-amber-400"></i>
+                                </button>
+
+                                <div class="h-4 w-px bg-gray-800 mx-1"></div>
+
+                                <!-- Inline Code -->
+                                <button type="button" onclick="wrapSelection('<code>', '</code>', 'kode')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Inline Code">
+                                    <i data-lucide="code" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Code Block -->
+                                <button type="button" onclick="insertCodeBlock()" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Code Block (Preformatted)">
+                                    <i data-lucide="file-code" class="w-4 h-4 text-cyan-400"></i>
+                                </button>
+                                <!-- Blockquote -->
+                                <button type="button" onclick="wrapSelection('<blockquote>', '</blockquote>', 'kutipan pesan penting')" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Kutipan (Blockquote)">
+                                    <i data-lucide="quote" class="w-4 h-4"></i>
+                                </button>
+                                <!-- Link -->
+                                <button type="button" onclick="openLinkModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition" title="Sisipkan Link (Ctrl+K)">
+                                    <i data-lucide="link" class="w-4 h-4"></i>
+                                </button>
+
+                                <div class="h-4 w-px bg-gray-800 mx-1"></div>
+
+                                <!-- Quick Emojis Dropdown / Trigger -->
+                                <div class="relative inline-block" id="emoji-dropdown-wrapper">
+                                    <button type="button" onclick="toggleEmojiTray()" class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-gray-800 transition flex items-center gap-1" title="Emoji Cepat">
+                                        <i data-lucide="smile" class="w-4 h-4"></i>
+                                        <i data-lucide="chevron-down" class="w-3 h-3 text-gray-500"></i>
+                                    </button>
+                                    <div id="emoji-tray" class="hidden absolute top-full left-0 mt-1 z-30 bg-gray-900 border border-gray-800 rounded-xl p-2 shadow-2xl w-64 grid grid-cols-6 gap-1.5">
+                                        <button type="button" onclick="insertEmoji('📢')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Pengumuman">📢</button>
+                                        <button type="button" onclick="insertEmoji('⚠️')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Peringatan">⚠️</button>
+                                        <button type="button" onclick="insertEmoji('🚀')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Roket">🚀</button>
+                                        <button type="button" onclick="insertEmoji('🎉')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Pesta">🎉</button>
+                                        <button type="button" onclick="insertEmoji('📌')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Pin">📌</button>
+                                        <button type="button" onclick="insertEmoji('💡')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Ide">💡</button>
+                                        <button type="button" onclick="insertEmoji('🤖')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Bot">🤖</button>
+                                        <button type="button" onclick="insertEmoji('✅')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Centang">✅</button>
+                                        <button type="button" onclick="insertEmoji('🔔')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Notifikasi">🔔</button>
+                                        <button type="button" onclick="insertEmoji('⏳')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Waktu">⏳</button>
+                                        <button type="button" onclick="insertEmoji('🔥')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Hot">🔥</button>
+                                        <button type="button" onclick="insertEmoji('ℹ️')" class="p-1.5 rounded hover:bg-gray-800 text-base transition" title="Info">ℹ️</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Controls: Fullscreen -->
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="toggleFullscreen()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition" title="Toggle Mode Layar Penuh">
+                                    <i data-lucide="maximize-2" id="fullscreen-icon" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Textarea Editor -->
+                        <textarea name="message_text" id="msg-input" rows="11" required placeholder="Ketik pesan broadcast Anda di sini...
+Contoh format:
+📢 <b>Pengumuman Sistem!</b>
+Kini bot mendukung fitur terbaru dengan kuota lebih fleksibel.
+<blockquote>Gunakan kode voucher: <tg-spoiler>UPDATE2026</tg-spoiler></blockquote>" class="w-full bg-gray-950 border-0 p-4 text-sm text-white focus:outline-none focus:ring-0 font-mono transition resize-y min-h-[260px] leading-relaxed"></textarea>
+
+                        <!-- Editor Bottom Status -->
+                        <div class="px-4 py-2.5 bg-gray-900/60 border-t border-gray-800/80 flex items-center justify-between text-xs text-gray-400">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-gray-800 text-[11px] font-mono text-cyan-400 font-medium">Parse Mode: HTML</span>
+                                <span class="hidden sm:inline text-gray-500">•</span>
+                                <span class="hidden sm:inline text-gray-400 text-[11px]">Shortcut: Ctrl+B (Tebal), Ctrl+I (Miring), Ctrl+K (Link)</span>
+                            </div>
+                            <button type="button" onclick="clearMessage()" class="text-xs text-gray-500 hover:text-red-400 transition flex items-center gap-1">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                <span>Bersihkan</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit & Action Bar -->
+                <div class="pt-3 border-t border-gray-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p class="text-xs text-gray-500 text-center sm:text-left">
+                        Pastikan isi pengumuman sudah sesuai sebelum dikirimkan ke seluruh pengguna.
+                    </p>
+                    <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                        <a href="/" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition text-center">
+                            Batal
+                        </a>
+                        <button type="submit" id="submit-btn" class="inline-flex items-center justify-center space-x-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition active:scale-[0.98]">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Kirim Broadcast Sekarang</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Column: Live Telegram Message Preview -->
+        <div id="preview-column" class="hidden lg:block lg:col-span-5 xl:col-span-4 space-y-4 lg:sticky lg:top-24">
+            <!-- Preview Card Header -->
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-4 h-4 text-cyan-400"></i>
+                    <span>Live Preview Telegram</span>
+                </h3>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-800/80">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>Live Sync</span>
+                </span>
             </div>
 
-            <!-- HTML Tags Helper -->
-            <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-4 text-xs text-gray-400 space-y-2">
-                <span class="font-semibold text-gray-300 block">Panduan Format HTML Telegram yang Didukung:</span>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px]">
-                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
-                        <code>&lt;b&gt;Tebal&lt;/b&gt;</code>
+            <!-- Telegram Frame Container (Authentic Telegram Dark Client Style) -->
+            <div class="bg-[#0e1621] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl telegram-bg">
+                <!-- Telegram Header -->
+                <div class="bg-[#17212b] border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-3 min-w-0">
+                        <!-- Bot Avatar -->
+                        <div class="w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-sm shadow-sm flex-shrink-0">
+                            <i data-lucide="bot" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span id="preview-bot-name" class="text-sm font-bold text-white truncate leading-tight">Telegram Bot Hub</span>
+                                <span class="px-1.5 py-0.2 rounded bg-cyan-900/60 border border-cyan-700/60 text-[9px] font-semibold text-cyan-300">BOT</span>
+                            </div>
+                            <span id="preview-bot-sub" class="text-[11px] text-gray-400 block truncate">@TelegramBotHub</span>
+                        </div>
                     </div>
-                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
-                        <code>&lt;i&gt;Miring&lt;/i&gt;</code>
+                    <div class="text-gray-500">
+                        <i data-lucide="more-vertical" class="w-4 h-4"></i>
                     </div>
-                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
-                        <code>&lt;code&gt;Kode&lt;/code&gt;</code>
+                </div>
+
+                <!-- Telegram Chat Canvas -->
+                <div class="p-4 min-h-[320px] max-h-[520px] overflow-y-auto space-y-3 flex flex-col justify-end">
+                    <!-- Date Pill -->
+                    <div class="flex justify-center">
+                        <span class="px-2.5 py-0.5 rounded-full bg-[#17212b]/80 border border-gray-800/80 text-[11px] text-gray-400 select-none">
+                            Hari ini
+                        </span>
                     </div>
-                    <div class="bg-gray-950 p-2 rounded-lg border border-gray-800">
-                        <code>&lt;a href="..."&gt;Link&lt;/a&gt;</code>
+
+                    <!-- Message Bubble (Incoming Bot Message in Telegram Dark UI) -->
+                    <div class="telegram-bubble-wrapper self-start max-w-[95%] w-fit">
+                        <div class="bg-[#182533] border border-[#243447] text-white rounded-2xl rounded-tl-sm p-3.5 shadow-md relative break-words">
+                            <!-- Sender Name in bubble -->
+                            <span id="preview-bubble-sender" class="text-xs font-bold text-cyan-400 block mb-1 select-none">Telegram Bot Hub</span>
+
+                            <!-- Bubble Message Text with rendered HTML -->
+                            <div id="telegram-bubble" class="text-[13px] leading-relaxed text-slate-100 whitespace-pre-wrap font-sans">
+                                <!-- Dynamically populated by JS -->
+                            </div>
+
+                            <!-- Message Footer: Time + Status -->
+                            <div class="flex items-center justify-end gap-1 mt-2 text-[10px] text-gray-400 select-none">
+                                <span id="preview-time">12:00</span>
+                                <span class="text-cyan-400 font-bold">✓✓</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Submit Button -->
-            <div class="pt-2 flex items-center justify-end space-x-3">
-                <a href="/" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-400 hover:text-white hover:bg-gray-800 transition">Batal</a>
-                <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-cyan-500/20 transition">
-                    <i data-lucide="send" class="w-4 h-4"></i>
-                    <span>Kirim Broadcast Sekarang</span>
-                </button>
+            <!-- Quick Clickable Format Guide -->
+            <div class="bg-gray-900/70 border border-gray-800 rounded-xl p-4 text-xs space-y-2.5">
+                <span class="font-semibold text-gray-300 block text-[11px] uppercase tracking-wider">
+                    Klik Tag untuk Menyisipkan Format Cepat:
+                </span>
+                <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
+                    <button type="button" onclick="wrapSelection('<b>', '</b>', 'Tebal')" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;b&gt;Tebal&lt;/b&gt;
+                    </button>
+                    <button type="button" onclick="wrapSelection('<i>', '</i>', 'Miring')" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;i&gt;Miring&lt;/i&gt;
+                    </button>
+                    <button type="button" onclick="wrapSelection('<u>', '</u>', 'Garis Bawah')" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;u&gt;Garis Bawah&lt;/u&gt;
+                    </button>
+                    <button type="button" onclick="wrapSelection('<s>', '</s>', 'Coret')" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;s&gt;Coret&lt;/s&gt;
+                    </button>
+                    <button type="button" onclick="wrapSelection('<tg-spoiler>', '</tg-spoiler>', 'Spoiler')" class="bg-gray-950 px-2 py-1 rounded-md border border-amber-900/60 hover:border-amber-500 text-amber-300 transition">
+                        &lt;tg-spoiler&gt;
+                    </button>
+                    <button type="button" onclick="wrapSelection('<code>', '</code>', 'kode')" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;code&gt;
+                    </button>
+                    <button type="button" onclick="wrapSelection('<blockquote>', '</blockquote>', 'Kutipan')" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;blockquote&gt;
+                    </button>
+                    <button type="button" onclick="openLinkModal()" class="bg-gray-950 px-2 py-1 rounded-md border border-gray-800 hover:border-cyan-500 hover:text-cyan-300 transition text-gray-300">
+                        &lt;a href="..."&gt;
+                    </button>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
+
+<!-- Custom CSS for Telegram Message Preview & Spoilers -->
+<style>
+    /* Realistic Telegram Spoiler */
+    .tg-spoiler {
+        background-color: rgba(255, 255, 255, 0.22);
+        color: transparent !important;
+        text-shadow: 0 0 7px rgba(255, 255, 255, 0.85);
+        border-radius: 4px;
+        padding: 1px 5px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        user-select: none;
+        display: inline;
+    }
+    .tg-spoiler.revealed {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: inherit !important;
+        text-shadow: none;
+        user-select: text;
+    }
+    
+    /* Telegram Quote / Blockquote */
+    #telegram-bubble blockquote {
+        border-left: 3px solid #22d3ee;
+        padding-left: 10px;
+        margin: 6px 0;
+        color: #cbd5e1;
+        font-style: italic;
+    }
+
+    /* Telegram Code & Pre */
+    #telegram-bubble code {
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.86em;
+        color: #e2e8f0;
+    }
+    #telegram-bubble pre {
+        background: rgba(0, 0, 0, 0.55);
+        border-radius: 8px;
+        padding: 8px 12px;
+        overflow-x: auto;
+        margin: 8px 0;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    #telegram-bubble pre code {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        display: block;
+    }
+
+    /* Telegram Links */
+    #telegram-bubble a {
+        color: #38bdf8;
+        text-decoration: underline;
+        word-break: break-all;
+    }
+
+    /* Telegram subtle background */
+    .telegram-bg {
+        background-color: #0e1621;
+        background-image: radial-gradient(#1e293b 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- WYSIWYG & LIVE PREVIEW CONTROLLER ---
+    const textarea = document.getElementById('msg-input');
+    const bubble = document.getElementById('telegram-bubble');
+    const charBadge = document.getElementById('char-badge');
+    const select = document.getElementById('bot-select');
+
+    // 1. Text formatting insertion
+    function wrapSelection(startTag, endTag, defaultText = '') {
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const val = textarea.value;
+        const selected = val.substring(start, end) || defaultText;
+
+        const replacement = startTag + selected + endTag;
+        textarea.value = val.substring(0, start) + replacement + val.substring(end);
+
+        textarea.focus();
+        const newCursor = start + startTag.length + selected.length;
+        textarea.setSelectionRange(newCursor, newCursor);
+
+        updatePreview();
+    }
+
+    function insertCodeBlock() {
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const val = textarea.value;
+        const selected = val.substring(start, end) || '// Tulis kode di sini...';
+
+        const needsLeadingNewline = start > 0 && val[start - 1] !== '\n';
+        const leading = needsLeadingNewline ? '\n' : '';
+        const snippet = `${leading}<pre><code>${selected}</code></pre>\n`;
+
+        textarea.value = val.substring(0, start) + snippet + val.substring(end);
+        textarea.focus();
+        const newCursor = start + snippet.length;
+        textarea.setSelectionRange(newCursor, newCursor);
+
+        updatePreview();
+    }
+
+    function insertEmoji(emoji) {
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const val = textarea.value;
+
+        textarea.value = val.substring(0, start) + emoji + val.substring(end);
+        textarea.focus();
+        const newCursor = start + emoji.length;
+        textarea.setSelectionRange(newCursor, newCursor);
+
+        toggleEmojiTray(false);
+        updatePreview();
+    }
+
+    function toggleEmojiTray(forceState) {
+        const tray = document.getElementById('emoji-tray');
+        if (!tray) return;
+        if (typeof forceState === 'boolean') {
+            if (forceState) tray.classList.remove('hidden');
+            else tray.classList.add('hidden');
+        } else {
+            tray.classList.toggle('hidden');
+        }
+    }
+
+    // Close emoji tray when clicking outside
+    document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('emoji-dropdown-wrapper');
+        const tray = document.getElementById('emoji-tray');
+        if (wrapper && tray && !wrapper.contains(e.target)) {
+            tray.classList.add('hidden');
+        }
+    });
+
+    // 2. Link Insertion via SweetAlert2 Modal
+    function openLinkModal() {
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = textarea.value.substring(start, end);
+
+        Swal.fire({
+            customClass: {
+                popup: 'tele-swal',
+                confirmButton: 'tele-swal-confirm-btn',
+                cancelButton: 'tele-swal-cancel-btn'
+            },
+            buttonsStyling: false,
+            title: 'Sisipkan Tautan (Link)',
+            html: `
+                <div class="space-y-3.5 text-left text-xs">
+                    <div>
+                        <label class="block text-gray-300 font-semibold mb-1">Teks Tautan</label>
+                        <input id="swal-link-text" type="text" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" value="${selectedText.replace(/"/g, '&quot;')}" placeholder="Contoh: Kunjungi Web Kami">
+                    </div>
+                    <div>
+                        <label class="block text-gray-300 font-semibold mb-1">URL Tujuan</label>
+                        <input id="swal-link-url" type="url" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" placeholder="https://t.me/..." autofocus>
+                    </div>
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Sisipkan Tautan',
+            cancelButtonText: 'Batal',
+            preConfirm: () => {
+                const text = document.getElementById('swal-link-text').value.trim();
+                const url = document.getElementById('swal-link-url').value.trim();
+                if (!url) {
+                    Swal.showValidationMessage('URL tidak boleh kosong');
+                    return false;
+                }
+                const cleanUrl = url.startsWith('http://') || url.startsWith('https://') || url.startsWith('tg://') || url.startsWith('mailto:') ? url : `https://${url}`;
+                return { text: text || cleanUrl, url: cleanUrl };
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const linkHtml = `<a href="${result.value.url}">${result.value.text}</a>`;
+                const val = textarea.value;
+                textarea.value = val.substring(0, start) + linkHtml + val.substring(end);
+                textarea.focus();
+                const newPos = start + linkHtml.length;
+                textarea.setSelectionRange(newPos, newPos);
+                updatePreview();
+            }
+        });
+    }
+
+    // 3. Templates
+    function insertTemplate(type) {
+        if (!textarea) return;
+        let content = '';
+        if (type === 'announcement') {
+            content = `📢 <b>PENGUMUMAN PENTING</b>\n\nHalo Pengguna Setia! 👋\nKami ingin menginformasikan bahwa telah dilakukan pembaruan sistem untuk meningkatkan stabilitas dan kecepatan layanan.\n\n✨ <b>Apa yang baru:</b>\n• Peningkatan kecepatan respons bot\n• Pembaruan kuota harian otomatis\n• Perbaikan beberapa bug minor\n\nTerima kasih atas dukungan Anda! 🙏`;
+        } else if (type === 'maintenance') {
+            content = `🛠️ <b>PEMBERITAHUAN PEMELIHARAAN SISTEM</b>\n\nLayanan bot akan mengalami pemeliharaan terjadwal pada:\n🗓️ <b>Waktu:</b> Malam ini, pukul 23:00 - 01:00 WIB\n⏱️ <b>Estimasi Durasi:</b> ~2 Jam\n\nSelama periode ini, layanan bot mungkin tidak dapat merespons sementara waktu.\nMohon maaf atas ketidaknyamanannya. 🙏`;
+        } else if (type === 'feature') {
+            content = `🚀 <b>FITUR BARU TELAH HADIR!</b>\n\nKami dengan senang hati memperkenalkan fitur terbaru:\n<blockquote>💡 <i>Fitur konversi instan dan antrean cerdas kini tersedia untuk seluruh pengguna!</i></blockquote>\n\nCoba sekarang dengan mengirimkan perintah /start atau akses menu utama bot.\nSelamat mencoba! 🎉`;
+        }
+
+        if (textarea.value.trim().length > 0) {
+            showConfirm({
+                title: 'Ganti Isi Pesan?',
+                text: 'Isi teks yang sudah ada akan diganti dengan template ini.',
+                icon: 'question',
+                confirmText: 'Ya, Pasang Template',
+                cancelText: 'Batal',
+                isDanger: false
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    textarea.value = content;
+                    updatePreview();
+                }
+            });
+        } else {
+            textarea.value = content;
+            updatePreview();
+        }
+    }
+
+    // 4. Clear Message
+    function clearMessage() {
+        if (!textarea || !textarea.value.trim()) return;
+        showConfirm({
+            title: 'Bersihkan Pesan?',
+            text: 'Apakah Anda yakin ingin menghapus seluruh teks pesan ini?',
+            icon: 'warning',
+            confirmText: 'Ya, Bersihkan',
+            cancelText: 'Batal',
+            isDanger: true
+        }).then((res) => {
+            if (res.isConfirmed) {
+                textarea.value = '';
+                updatePreview();
+                textarea.focus();
+            }
+        });
+    }
+
+    // 5. Fullscreen Toggle
+    let isFullscreen = false;
+    function toggleFullscreen() {
+        const container = document.getElementById('editor-column');
+        const icon = document.getElementById('fullscreen-icon');
+        isFullscreen = !isFullscreen;
+
+        if (isFullscreen) {
+            container.classList.add('fixed', 'inset-0', 'z-50', 'bg-[#080c16]/95', 'backdrop-blur-md', 'p-4', 'sm:p-8', 'overflow-y-auto', 'max-w-none');
+            if (icon) icon.setAttribute('data-lucide', 'minimize-2');
+        } else {
+            container.classList.remove('fixed', 'inset-0', 'z-50', 'bg-[#080c16]/95', 'backdrop-blur-md', 'p-4', 'sm:p-8', 'overflow-y-auto', 'max-w-none');
+            if (icon) icon.setAttribute('data-lucide', 'maximize-2');
+        }
+        lucide.createIcons();
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isFullscreen) {
+            toggleFullscreen();
+        }
+    });
+
+    // 6. Safe HTML Parser for Telegram Preview
+    function renderTelegramHtml(raw) {
+        if (!raw || !raw.trim()) {
+            return '<p class="text-gray-500 italic text-xs leading-normal">Pratinjau pesan akan muncul di sini secara real-time saat Anda mengetik...</p>';
+        }
+
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(`<div>${raw}</div>`, 'text/html');
+            const container = doc.body.firstElementChild || doc.body;
+
+            const allowedTags = new Set([
+                'B', 'STRONG', 'I', 'EM', 'U', 'INS', 'S', 'STRIKE', 'DEL',
+                'TG-SPOILER', 'A', 'CODE', 'PRE', 'BLOCKQUOTE', 'BR', 'SPAN'
+            ]);
+
+            function sanitizeNode(node) {
+                if (node.nodeType === Node.TEXT_NODE) return;
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    const tag = node.tagName.toUpperCase();
+                    if (!allowedTags.has(tag)) {
+                        const textNode = document.createTextNode(node.outerHTML || node.textContent);
+                        node.parentNode.replaceChild(textNode, node);
+                        return;
+                    }
+
+                    const attrs = Array.from(node.attributes);
+                    for (const attr of attrs) {
+                        const attrName = attr.name.toLowerCase();
+                        if (tag === 'A' && attrName === 'href') {
+                            const val = attr.value.trim().toLowerCase();
+                            if (!val.startsWith('http://') && !val.startsWith('https://') && !val.startsWith('tg://') && !val.startsWith('mailto:')) {
+                                node.removeAttribute(attr.name);
+                            } else {
+                                node.setAttribute('target', '_blank');
+                                node.setAttribute('rel', 'noopener noreferrer');
+                            }
+                        } else if (tag === 'SPAN' && attrName === 'class' && attr.value === 'tg-spoiler') {
+                            // Allowed spoiler class
+                        } else if (tag === 'CODE' && attrName === 'class' && attr.value.startsWith('language-')) {
+                            // Allowed syntax highlight class
+                        } else {
+                            node.removeAttribute(attr.name);
+                        }
+                    }
+
+                    if (tag === 'TG-SPOILER') {
+                        node.classList.add('tg-spoiler');
+                        node.setAttribute('title', 'Klik untuk membuka / menutup spoiler');
+                    } else if (tag === 'SPAN' && node.classList.contains('tg-spoiler')) {
+                        node.setAttribute('title', 'Klik untuk membuka / menutup spoiler');
+                    }
+
+                    Array.from(node.childNodes).forEach(sanitizeNode);
+                }
+            }
+
+            Array.from(container.childNodes).forEach(sanitizeNode);
+            return container.innerHTML;
+        } catch (err) {
+            return raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+    }
+
+    // 7. Live Preview & Character Count Updater
+    function updatePreview() {
+        if (!textarea || !bubble) return;
+        const text = textarea.value;
+        const len = text.length;
+
+        // Render HTML
+        bubble.innerHTML = renderTelegramHtml(text);
+
+        // Update Char Count & Status
+        if (charBadge) {
+            charBadge.textContent = `${len} / 4096 Karakter`;
+            if (len > 4096) {
+                charBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono bg-red-950 border border-red-800 text-red-400 font-bold';
+            } else if (len > 3500) {
+                charBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono bg-amber-950 border border-amber-800 text-amber-400 font-semibold';
+            } else {
+                charBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono bg-gray-900 border border-gray-800 text-gray-400';
+            }
+        }
+
+        // Update time
+        const timeEl = document.getElementById('preview-time');
+        if (timeEl) {
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            timeEl.textContent = `${hh}:${mm}`;
+        }
+    }
+
+    // Interactive Telegram Spoiler click toggle
+    if (bubble) {
+        bubble.addEventListener('click', (e) => {
+            const spoiler = e.target.closest('.tg-spoiler');
+            if (spoiler) {
+                spoiler.classList.toggle('revealed');
+            }
+        });
+    }
+
+    // 8. Bot Selector change listener
+    function updateBotPreview() {
+        if (!select) return;
+        const opt = select.options[select.selectedIndex];
+        const botName = opt.getAttribute('data-name') || 'Semua Pengguna';
+        const botUsername = opt.getAttribute('data-username') || 'Telegram Bot Hub';
+
+        const nameEl = document.getElementById('preview-bot-name');
+        const subEl = document.getElementById('preview-bot-sub');
+        const senderEl = document.getElementById('preview-bubble-sender');
+
+        if (nameEl) nameEl.textContent = botName;
+        if (subEl) subEl.textContent = botUsername.startsWith('@') ? botUsername : `@${botUsername}`;
+        if (senderEl) senderEl.textContent = botName;
+    }
+
+    // 9. Keyboard Shortcuts inside Editor
+    if (textarea) {
+        textarea.addEventListener('input', updatePreview);
+        textarea.addEventListener('keyup', updatePreview);
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'b' || e.key === 'B') {
+                    e.preventDefault();
+                    wrapSelection('<b>', '</b>', 'teks tebal');
+                } else if (e.key === 'i' || e.key === 'I') {
+                    e.preventDefault();
+                    wrapSelection('<i>', '</i>', 'teks miring');
+                } else if (e.key === 'u' || e.key === 'U') {
+                    e.preventDefault();
+                    wrapSelection('<u>', '</u>', 'teks garis bawah');
+                } else if (e.key === 'k' || e.key === 'K') {
+                    e.preventDefault();
+                    openLinkModal();
+                }
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + 2;
+                updatePreview();
+            }
+        });
+    }
+
+    // 10. Mobile Tab Switcher
+    function switchMobileTab(tab) {
+        const editorCol = document.getElementById('editor-column');
+        const previewCol = document.getElementById('preview-column');
+        const editBtn = document.getElementById('tab-editor-btn');
+        const prevBtn = document.getElementById('tab-preview-btn');
+
+        if (tab === 'editor') {
+            editorCol.classList.remove('hidden');
+            previewCol.classList.add('hidden');
+            previewCol.classList.remove('block');
+            editBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-cyan-600 text-white flex items-center justify-center gap-2 transition';
+            prevBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-white flex items-center justify-center gap-2 transition';
+        } else {
+            editorCol.classList.add('hidden');
+            previewCol.classList.remove('hidden');
+            previewCol.classList.add('block');
+            prevBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-cyan-600 text-white flex items-center justify-center gap-2 transition';
+            editBtn.className = 'flex-1 py-2 px-3 rounded-lg text-xs font-semibold text-gray-400 hover:text-white flex items-center justify-center gap-2 transition';
+        }
+        lucide.createIcons();
+    }
+
+    // 11. Form Validation & Confirmation
+    function confirmBroadcast(event) {
+        event.preventDefault();
+        const text = textarea ? textarea.value.trim() : '';
+
+        if (!text) {
+            Swal.fire({
+                customClass: { popup: 'tele-swal', confirmButton: 'tele-swal-confirm-btn' },
+                buttonsStyling: false,
+                title: 'Pesan Masih Kosong',
+                text: 'Silakan ketik isi pesan broadcast terlebih dahulu sebelum mengirim.',
+                icon: 'warning',
+                confirmButtonText: 'Mengerti'
+            });
+            return false;
+        }
+
+        if (text.length > 4096) {
+            Swal.fire({
+                customClass: { popup: 'tele-swal', confirmButton: 'tele-swal-danger-btn' },
+                buttonsStyling: false,
+                title: 'Batas Karakter Terlampaui',
+                text: `Panjang pesan saat ini adalah ${text.length} karakter. Batas maksimal Telegram adalah 4096 karakter. Mohon perpendek pesan Anda.`,
+                icon: 'error',
+                confirmButtonText: 'Tutup'
+            });
+            return false;
+        }
+
+        const selectedOption = select.options[select.selectedIndex];
+        const targetLabel = selectedOption ? selectedOption.text.trim() : 'seluruh pengguna';
+
+        return confirmForm(
+            event,
+            `Apakah Anda yakin ingin mengirim pesan broadcast (${text.length} karakter) ke:\n${targetLabel}?`,
+            false
+        );
+    }
+
+    // Initial render on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        updateBotPreview();
+        updatePreview();
+        lucide.createIcons();
+    });
+</script>
 {% endblock %}
