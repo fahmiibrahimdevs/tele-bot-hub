@@ -1,4 +1,6 @@
-<img width="1920" height="1080" alt="Thumbnail_TeleBotHub" src="https://github.com/user-attachments/assets/cd49b166-766d-45f3-84b3-fad819dcaf72" />
+<p align="center">
+  <img src="docs/Thumbnail_TeleBotHub.png" alt="Thumbnail TeleBotHub" width="100%" />
+</p>
 
 # 🤖 Telegram Bot Hub Portal
 
